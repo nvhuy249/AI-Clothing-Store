@@ -25,9 +25,16 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-gray-700 hover:text-black transition"
+                className="relative text-sm font-medium text-gray-700 hover:text-black transition group"
               >
                 {link.label}
+
+                <span
+                  className="
+                    absolute left-0 -bottom-1 h-[2px] w-0 bg-blue-700 
+                    transition-all duration-300 group-hover:w-full
+                  "
+                />
               </Link>
             ))}
           </div>
@@ -46,23 +53,23 @@ export default function Navbar() {
             href="/"
             className="text-2xl font-extrabold tracking-tight text-gray-900"
           >
-            Neuro<span className="text-green-700">Fit</span>
+            Neuro<span className="text-blue-700">Fit</span>
           </Link>
 
           {/* Right - Icons */}
           <div className="flex items-center space-x-5">
-            <button aria-label="Search" className="hidden md:block text-gray-300 hover:text-green-700">
+            <button aria-label="Search" className="hidden md:block text-gray-300 hover:text-blue-700">
               <Search size={20} />
             </button>
-            <button aria-label="Favourites" className="text-gray-300 hover:text-green-700">
+            <button aria-label="Favourites" className="text-gray-300 hover:text-blue-700">
               <Heart size={20} />
             </button>
-            <button aria-label="Profile" className="text-gray-300 hover:text-green-700">
+            <button aria-label="Profile" className="text-gray-300 hover:text-blue-700">
               <User size={20} />
             </button>
             <button
               aria-label="Cart"
-              className="text-gray-300 hover:text-green-700 relative"
+              className="text-gray-300 hover:text-blue-700 relative"
               onClick={() => setCartOpen(!cartOpen)}
             >
               <ShoppingBag size={20} />
@@ -89,23 +96,36 @@ export default function Navbar() {
         )}
       </nav>
 
-      {/* Cart Side Panel */}
+      {/* Cart Overlay */}
       {cartOpen && (
-        <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-40"
-            onClick={() => setCartOpen(false)}
-          />
-
-          {/* Cart Drawer */}
-          <div className="fixed top-0 right-0 w-full sm:w-1/3 md:w-1/4 h-full bg-white shadow-lg z-50 p-6 overflow-y-auto transition-all">
-            <h2 className="text-green-700 font-semibold mb-4">Your Cart</h2>
-            <p className="text-gray-500">Your cart is currently empty.</p>
-            <button className="text-black fixed top-5 right-5" onClick={() => setCartOpen(false)}><X size={24} /></button>
-          </div>
-        </>
+        <div
+          className={`
+            fixed inset-0 z-40 bg-black transition-opacity duration-300
+            ${cartOpen ? "bg-opacity-30" : "bg-opacity-0"}
+          `}
+          onClick={() => setCartOpen(false)}
+        />
       )}
+
+      {/* Cart Drawer */}
+      <div
+        className={`
+          fixed top-0 right-0 z-50 h-full w-full sm:w-1/3 md:w-1/4 bg-white shadow-xl p-6
+          transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]
+          ${cartOpen ? "translate-x-0" : "translate-x-full"}
+        `}
+      >
+        <button
+          className="absolute top-5 right-5 text-black"
+          onClick={() => setCartOpen(false)}
+        >
+          <X size={24} />
+        </button>
+
+        <h2 className="text-green-700 font-semibold mb-4">Your Cart</h2>
+        <p className="text-gray-500">Your cart is currently empty.</p>
+      </div>
     </>
   );
 }
+
