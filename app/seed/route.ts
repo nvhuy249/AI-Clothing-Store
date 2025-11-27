@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import postgres from 'postgres';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
@@ -113,7 +114,8 @@ async function seedProducts() {
       stock_quantity INTEGER DEFAULT 0,
       colour VARCHAR(50),
       size VARCHAR(50),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      photos TEXT[]
     );
   `;
 
@@ -140,7 +142,8 @@ async function seedProducts() {
       brand_id: nikeBrand[0]?.brand_id,
       stock_quantity: 100,
       colour: 'Blue',
-      size: 'M'
+      size: 'M',
+      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/blue-shirt-men.png']
     },
     {
       name: 'Women\'s Summer Dress',
@@ -151,7 +154,8 @@ async function seedProducts() {
       brand_id: zaraBrand[0]?.brand_id,
       stock_quantity: 45,
       colour: 'Red',
-      size: 'S'
+      size: 'S',
+      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/red-dress-women.png']
     },
     {
       name: 'Men\'s Denim Jeans',
@@ -162,7 +166,8 @@ async function seedProducts() {
       brand_id: hmBrand[0]?.brand_id,
       stock_quantity: 60,
       colour: 'Dark Blue',
-      size: '32'
+      size: '32',
+      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/blue-jeans-men.png']
     },
     {
       name: 'Women\'s Leather Jacket',
@@ -173,7 +178,8 @@ async function seedProducts() {
       brand_id: zaraBrand[0]?.brand_id,
       stock_quantity: 25,
       colour: 'Black',
-      size: 'M'
+      size: 'M',
+      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/leather-jacket-women.png']
     },
     {
       name: 'Unisex Leather Belt',
@@ -184,10 +190,11 @@ async function seedProducts() {
       brand_id: hmBrand[0]?.brand_id,
       stock_quantity: 75,
       colour: 'Brown',
-      size: 'L'
+      size: 'L',
+      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/brown-belt-women.png']
     },
     {
-      name: 'Men\'s Winter Parka',
+      name: 'Men\'s Winter Puffer Jacket',
       description: 'Warm insulated winter coat',
       price: 149.99,
       category_id: menCategory[0]?.category_id,
@@ -195,15 +202,16 @@ async function seedProducts() {
       brand_id: nikeBrand[0]?.brand_id,
       stock_quantity: 30,
       colour: 'Navy',
-      size: 'L'
+      size: 'L',
+      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/navy-puffer-men.png']
     }
   ];
 
   const insertedProducts = await Promise.all(
     products.map(
       (product) => sql`
-        INSERT INTO products (name, description, price, category_id, sub_category_id, brand_id, stock_quantity, colour, size)
-        VALUES (${product.name}, ${product.description}, ${product.price}, ${product.category_id}, ${product.sub_category_id}, ${product.brand_id}, ${product.stock_quantity}, ${product.colour}, ${product.size})
+        INSERT INTO products (name, description, price, category_id, sub_category_id, brand_id, stock_quantity, colour, size, photos)
+        VALUES (${product.name}, ${product.description}, ${product.price}, ${product.category_id}, ${product.sub_category_id}, ${product.brand_id}, ${product.stock_quantity}, ${product.colour}, ${product.size}, ${product.photos})
         ON CONFLICT (product_id) DO NOTHING;
       `,
     ),
@@ -223,7 +231,8 @@ async function seedCustomers() {
       phone VARCHAR(20),
       address TEXT,
       profile_photo_url TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      password TEXT NOT NULL
     );
   `;
 
@@ -233,32 +242,37 @@ async function seedCustomers() {
       email: 'john.doe@example.com',
       phone: '+1234567890',
       address: '123 Main St, New York, NY',
-      profile_photo_url: 'https://example.com/photos/john.jpg'
+      profile_photo_url: 'https://example.com/photos/john.jpg',
+      password: '1234567890'
     },
     {
       name: 'Jane Smith',
       email: 'jane.smith@example.com',
       phone: '+0987654321',
       address: '456 Oak Ave, Los Angeles, CA',
-      profile_photo_url: 'https://example.com/photos/jane.jpg'
+      profile_photo_url: 'https://example.com/photos/jane.jpg',
+      password: '0987654321'
     },
     {
       name: 'Mike Johnson',
       email: 'mike.j@example.com',
       phone: '+1122334455',
       address: '789 Pine Rd, Chicago, IL',
-      profile_photo_url: null
+      profile_photo_url: null,
+      password: '1122334455'
     }
   ];
 
   const insertedCustomers = await Promise.all(
     customers.map(
-      (customer) => sql`
-        INSERT INTO customers (name, email, phone, address, profile_photo_url)
-        VALUES (${customer.name}, ${customer.email}, ${customer.phone}, ${customer.address}, ${customer.profile_photo_url})
+      async (customer) => {
+        const hashedPassword = await bcrypt.hash(customer.password, 10);
+        return sql`
+        INSERT INTO customers (name, email, phone, address, profile_photo_url, password)
+        VALUES (${customer.name}, ${customer.email}, ${customer.phone}, ${customer.address}, ${customer.profile_photo_url}, ${hashedPassword})
         ON CONFLICT (email) DO NOTHING;
-      `,
-    ),
+      `;
+    }),
   );
 
   return insertedCustomers;

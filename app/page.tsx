@@ -3,12 +3,12 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <main className="flex flex-col items-center w-full">
+    <main className="flex flex-col items-center w-full pt-16 md:pt-0">
 
-      {/* 🌟 HERO SECTION */}
+      {/* HERO SECTION */}
       <section className="relative w-full">
         <Image
-          src="/images/main-hero.png"
+          src="/images/page-hero.png"
           alt="Hero"
           width={1920}
           height={1080}
@@ -18,29 +18,31 @@ export default function Home() {
 
         {/* Overlay text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 bg-black/20">
-          <h1 className="text-5xl font-bold text-white drop-shadow-lg">
-            Welcome to NeuroFit
+          <h1 className="uppercase tracking-tight sm:tracking-normal leading-tight sm:leading-snug
+             text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold">
+            Welcome to Neuro<span className="text-blue-500">Fit</span>
           </h1>
 
-          <p className="text-white/90 mt-4 text-lg sm:text-xl max-w-xl drop-shadow">
+          <p className="font-normal text-white text-base sm:text-lg md:text-xl max-w-xl ">
             AI-powered fashion. Try on styles instantly with generative models.
           </p>
 
           <Link
             href="/generate"
-            className="mt-6 px-8 py-3 bg-white text-black font-semibold rounded-xl shadow-lg hover:bg-gray-200 transition"
+            className="bg-black px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4
+             text-sm sm:text-base md:text-lg rounded-lg transition transform active:scale-95 active:bg-gray-800"
           >
             Try Now
           </Link>
         </div>
       </section>
 
-      {/* 🪟 WINDOWS SECTION */}
+      {/* WINDOWS SECTION */}
       <section className="w-full max-w-6xl px-4 py-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
 
         {/* SHOP */}
         <Link href="/shop" className="group">
-          <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition">
+          <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition active:scale-95 active:shadow-inner">
             <Image
               src="/images/shop-hero.png"
               alt="Shop"
@@ -57,7 +59,7 @@ export default function Home() {
 
         {/* CLOSET */}
         <Link href="/closet" className="group">
-          <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition">
+          <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition active:scale-95 active:shadow-inner">
             <Image
               src="/images/closet-hero.png"
               alt="Closet"
@@ -75,7 +77,7 @@ export default function Home() {
 
         {/* LOGIN / SIGNUP */}
         <Link href="/auth" className="group">
-          <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition">
+          <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition active:scale-95 active:shadow-inner">
             <Image
               src="/images/blank-avatar.png"
               alt="Login"
@@ -93,7 +95,7 @@ export default function Home() {
 
         {/* ABOUT US */}
         <Link href="/about" className="group">
-          <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition">
+          <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition active:scale-95 active:shadow-inner">
             <Image
               src="/images/about-hero.png"
               alt="About"

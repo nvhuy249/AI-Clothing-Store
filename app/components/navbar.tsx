@@ -17,7 +17,7 @@ export default function Navbar() {
   return (
     <>
       {/* Navbar */}
-      <nav className="bg-white shadow-sm fixed w-full top-0 left-0 z-50 border-b border-gray-100">
+      <nav className="bg-black shadow-sm fixed w-full top-0 left-0 z-50 border-b border-gray-900">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
           {/* Left - Nav Links */}
           <div className="hidden md:flex space-x-8">
@@ -25,7 +25,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative text-sm font-medium text-gray-700 hover:text-black transition group"
+                className="relative text-sm font-medium text-white hover:text-blue-700 transition group"
               >
                 {link.label}
 
@@ -40,36 +40,45 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Button */}
-          <button
-            className="md:hidden text-gray-800"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="flex items-center md:hidden space-x-3">
+            {/* Menu button */}
+            <button
+              className="text-gray-800"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+
+            {/* Search button */}
+            <button aria-label="Search" className="text-gray-700 hover:text-blue-700">
+              <Search size={20} />
+            </button>
+          </div>
+
 
           {/* Center - Logo */}
           <Link
             href="/"
-            className="text-2xl font-extrabold tracking-tight text-gray-900"
+            className="text-2xl font-extrabold tracking-tight text-white"
           >
-            Neuro<span className="text-blue-700">Fit</span>
+            NEURO<span className="text-blue-700">FIT</span>
           </Link>
 
           {/* Right - Icons */}
           <div className="flex items-center space-x-5">
-            <button aria-label="Search" className="hidden md:block text-gray-300 hover:text-blue-700">
+            <button aria-label="Search" className="hidden md:block text-gray-700 hover:text-blue-700">
               <Search size={20} />
             </button>
-            <button aria-label="Favourites" className="text-gray-300 hover:text-blue-700">
+            <button aria-label="Favourites" className="text-gray-700 hover:text-blue-700">
               <Heart size={20} />
             </button>
-            <button aria-label="Profile" className="text-gray-300 hover:text-blue-700">
+            <button aria-label="Profile" className="text-gray-700 hover:text-blue-700">
               <User size={20} />
             </button>
             <button
               aria-label="Cart"
-              className="text-gray-300 hover:text-blue-700 relative"
+              className="text-gray-700 hover:text-blue-700 relative"
               onClick={() => setCartOpen(!cartOpen)}
             >
               <ShoppingBag size={20} />
@@ -79,13 +88,13 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100">
+          <div className="md:hidden bg-black border-t border-gray-900">
             <div className="flex flex-col items-center py-4 space-y-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-gray-700 hover:text-blue-600 transition font-medium"
+                  className="text-gray-300 hover:text-blue-600 transition font-medium"
                   onClick={() => setMenuOpen(false)}
                 >
                   {link.label}
@@ -122,7 +131,7 @@ export default function Navbar() {
           <X size={24} />
         </button>
 
-        <h2 className="text-green-700 font-semibold mb-4">Your Cart</h2>
+        <h2 className="text-blue-700 font-semibold mb-4">Your Cart</h2>
         <p className="text-gray-500">Your cart is currently empty.</p>
       </div>
     </>
