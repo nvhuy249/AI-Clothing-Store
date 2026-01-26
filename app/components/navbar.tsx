@@ -73,9 +73,9 @@ export default function Navbar() {
             <button aria-label="Favourites" className="text-gray-700 hover:text-blue-700">
               <Heart size={20} />
             </button>
-            <button aria-label="Profile" className="text-gray-700 hover:text-blue-700">
+            <Link aria-label="Profile" href="/profile" className="text-gray-700 hover:text-blue-700">
               <User size={20} />
-            </button>
+            </Link>
             <button
               aria-label="Cart"
               className="text-gray-700 hover:text-blue-700 relative"

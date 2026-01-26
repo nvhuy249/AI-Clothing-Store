@@ -76,7 +76,7 @@ export default function Home() {
         </Link>
 
         {/* LOGIN / SIGNUP */}
-        <Link href="/auth" className="group">
+        <Link href="/login" className="group">
           <div className="aspect-square bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden shadow-lg group-hover:shadow-xl transition active:scale-95 active:shadow-inner">
             <Image
               src="/images/blank-avatar.png"

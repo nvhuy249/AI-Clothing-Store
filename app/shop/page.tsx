@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { fetchFilteredProductsPage } from "../lib/data";
+import { Suspense } from 'react';
+import FilterSidebar from '../components/filter-sidebar';
+import { fetchFilteredProductsPage, fetchFilterOptions, fetchSubCategoriesByCategory, fetchBrands, fetchCategories, fetchSubcategories } from "../lib/data";
 
 function toUrlParams(obj: Record<string, any>) {
   const p = new URLSearchParams();
@@ -30,6 +32,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const sort = params.sort || null;
   const page = params.page ? Number(params.page) : 1;
 
+  // Fetch filter options and subcategories
+  const filterOptions = await fetchFilterOptions();
+  const subCategories = categoryId ? await fetchSubCategoriesByCategory(categoryId) : [];
+
   const { products, totalPages } = await fetchFilteredProductsPage(
     query,
     categoryId,
@@ -46,29 +52,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   return (
     <div className="p-4 md:flex md:gap-6 pt-20">
       {/* Filters Sidebar */}
-      <aside className="w-full md:w-1/4 mb-4 md:mb-0">
-        <h3 className="font-semibold mb-2">Filters</h3>
-        {/* Example filters */}
-        <div className="mb-2">
-          <label className="block text-sm">Brand</label>
-          <input type="text" placeholder="Brand" className="w-full border rounded px-2 py-1" />
-        </div>
-        <div className="mb-2">
-          <label className="block text-sm">Colour</label>
-          <input type="text" placeholder="Colour" className="w-full border rounded px-2 py-1" />
-        </div>
-        <div className="mb-2">
-          <label className="block text-sm">Size</label>
-          <input type="text" placeholder="Size" className="w-full border rounded px-2 py-1" />
-        </div>
-        <div className="mb-2">
-          <label className="block text-sm">Price Range</label>
-          <div className="flex gap-2">
-            <input type="number" placeholder="Min" className="w-1/2 border rounded px-2 py-1" />
-            <input type="number" placeholder="Max" className="w-1/2 border rounded px-2 py-1" />
-          </div>
-        </div>
-      </aside>
+      <FilterSidebar 
+            filterOptions={filterOptions} 
+            subCategories={subCategories}
+          />
 
       {/* Products Grid */}
       <div className="w-full md:w-3/4 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -78,7 +65,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <img
                 src={prod.photos[0]}
                 alt={prod.name}
-                className="w-full h-48 object-cover rounded-md"
+                className="w-full h-100 object-cover rounded-md"
               />
             ) : (
               <div className="w-full h-48 bg-gray-200 rounded-md" />

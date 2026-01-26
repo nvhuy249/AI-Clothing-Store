@@ -143,7 +143,7 @@ async function seedProducts() {
       stock_quantity: 100,
       colour: 'Blue',
       size: 'M',
-      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/blue-shirt-men.png']
+      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/blue-shirt-men.png']
     },
     {
       name: 'Women\'s Summer Dress',
@@ -155,7 +155,7 @@ async function seedProducts() {
       stock_quantity: 45,
       colour: 'Red',
       size: 'S',
-      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/red-dress-women.png']
+      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/red-dress-women.png']
     },
     {
       name: 'Men\'s Denim Jeans',
@@ -167,7 +167,7 @@ async function seedProducts() {
       stock_quantity: 60,
       colour: 'Dark Blue',
       size: '32',
-      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/blue-jeans-men.png']
+      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/blue-jeans-men.png']
     },
     {
       name: 'Women\'s Leather Jacket',
@@ -179,7 +179,7 @@ async function seedProducts() {
       stock_quantity: 25,
       colour: 'Black',
       size: 'M',
-      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/leather-jacket-women.png']
+      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/leather-jacket-women.png']
     },
     {
       name: 'Unisex Leather Belt',
@@ -191,7 +191,7 @@ async function seedProducts() {
       stock_quantity: 75,
       colour: 'Brown',
       size: 'L',
-      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/brown-belt-women.png']
+      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/brown-belt-women.png']
     },
     {
       name: 'Men\'s Winter Puffer Jacket',
@@ -203,7 +203,7 @@ async function seedProducts() {
       stock_quantity: 30,
       colour: 'Navy',
       size: 'L',
-      photos: ['https://neurofit-images.s3.ap-southeast-2.amazonaws.com/products/navy-puffer-men.png']
+      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/navy-puffer-men.png']
     }
   ];
 

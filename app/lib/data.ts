@@ -161,6 +161,53 @@ export async function fetchFilteredProductsPage(
   return { products, totalPages };
 }
 
+export async function fetchFilterOptions() {
+  try {
+    const [categories, brands, colours, sizes] = await Promise.all([
+      sql<Array<{ category_id: string; name: string }>>`
+        SELECT DISTINCT category_id, name FROM categories ORDER BY name ASC
+      `,
+      sql<Array<{ brand_id: string; name: string }>>`
+        SELECT DISTINCT brand_id, name FROM brands ORDER BY name ASC
+      `,
+      sql<Array<{ colour: string }>>`
+        SELECT DISTINCT colour FROM products WHERE colour IS NOT NULL ORDER BY colour ASC
+      `,
+      sql<Array<{ size: string }>>`
+        SELECT DISTINCT size FROM products WHERE size IS NOT NULL ORDER BY size ASC
+      `,
+    ]);
+
+    return {
+      categories: categories as Array<{ category_id: string; name: string }>,
+      brands: brands as Array<{ brand_id: string; name: string }>,
+      colours: colours.map(row => row.colour),
+      sizes: sizes.map(row => row.size),
+    };
+  } catch (error) {
+    console.error('Failed to fetch filter options:', error);
+    throw new Error('Failed to fetch filter options');
+  }
+}
+
+export async function fetchSubCategoriesByCategory(categoryId: string) {
+  try {
+    // Some schemas lack category_id on sub_categories; derive via products join.
+    const subCategories = await sql<Array<{ sub_category_id: string; name: string }>>`
+      SELECT DISTINCT sc.sub_category_id, sc.name
+      FROM sub_categories sc
+      JOIN products p ON p.sub_category_id = sc.sub_category_id
+      WHERE p.category_id = ${categoryId}
+      ORDER BY sc.name ASC
+    `;
+    return subCategories as Array<{ sub_category_id: string; name: string }>;
+  } catch (error) {
+    console.error('Failed to fetch subcategories:', error);
+    throw new Error('Failed to fetch subcategories');
+  }
+}
+
+
 // Fetch all brands (with filtering)
 export async function fetchBrands(query: string) {
   console.log('Fetching brands...');
@@ -219,4 +266,69 @@ export async function fetchSubcategories(query: string) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch subcategories.');
   }
+}
+
+// --- Customer / Orders helpers ---
+
+export type CustomerProfile = {
+  customer_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  address: string | null;
+  profile_photo_url: string | null;
+  created_at: string;
+};
+
+export type OrderWithItems = {
+  order_id: string;
+  order_date: string;
+  status: string;
+  total_amount: number;
+  items: Array<{
+    order_item_id: string;
+    product_id: string | null;
+    product_name: string | null;
+    quantity: number;
+    unit_price: number;
+  }>;
+};
+
+export async function fetchCustomerByEmail(email: string): Promise<CustomerProfile | null> {
+  const rows = await sql<CustomerProfile[]>`
+    SELECT customer_id, name, email, phone, address, profile_photo_url, created_at
+    FROM customers
+    WHERE email = ${email}
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
+}
+
+export async function fetchOrdersForCustomer(customerId: string): Promise<OrderWithItems[]> {
+  const rows = await sql<OrderWithItems[]>`
+    SELECT
+      o.order_id,
+      o.order_date,
+      o.status,
+      o.total_amount,
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'order_item_id', oi.order_item_id,
+            'product_id', oi.product_id,
+            'product_name', p.name,
+            'quantity', oi.quantity,
+            'unit_price', oi.unit_price
+          )
+        ) FILTER (WHERE oi.order_item_id IS NOT NULL),
+        '[]'::json
+      ) AS items
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN products p ON p.product_id = oi.product_id
+    WHERE o.customer_id = ${customerId}
+    GROUP BY o.order_id
+    ORDER BY o.order_date DESC;
+  `;
+  return rows;
 }
