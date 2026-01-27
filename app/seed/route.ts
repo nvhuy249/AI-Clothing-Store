@@ -114,110 +114,14 @@ async function seedProducts() {
       stock_quantity INTEGER DEFAULT 0,
       colour VARCHAR(50),
       size VARCHAR(50),
+      fit VARCHAR(100),
+      material VARCHAR(100),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       photos TEXT[]
     );
   `;
 
-  // Get category, sub-category and brand IDs
-  const menCategory = await sql`SELECT category_id FROM categories WHERE name = 'Men' LIMIT 1`;
-  const womenCategory = await sql`SELECT category_id FROM categories WHERE name = 'Women' LIMIT 1`;
-  const accessoriesCategory = await sql`SELECT category_id FROM categories WHERE name = 'Accessories' LIMIT 1`;
-  
-  const topSubCategory = await sql`SELECT sub_category_id FROM sub_categories WHERE name = 'Top' LIMIT 1`;
-  const bottomsSubCategory = await sql`SELECT sub_category_id FROM sub_categories WHERE name = 'Bottoms' LIMIT 1`;
-  const jacketSubCategory = await sql`SELECT sub_category_id FROM sub_categories WHERE name = 'Jacket' LIMIT 1`;
-  
-  const nikeBrand = await sql`SELECT brand_id FROM brands WHERE name = 'Nike' LIMIT 1`;
-  const zaraBrand = await sql`SELECT brand_id FROM brands WHERE name = 'Zara' LIMIT 1`;
-  const hmBrand = await sql`SELECT brand_id FROM brands WHERE name = 'H&M' LIMIT 1`;
-
-  const products = [
-    {
-      name: 'Men\'s Classic T-Shirt',
-      description: 'Comfortable cotton blend t-shirt',
-      price: 29.99,
-      category_id: menCategory[0]?.category_id,
-      sub_category_id: topSubCategory[0]?.sub_category_id,
-      brand_id: nikeBrand[0]?.brand_id,
-      stock_quantity: 100,
-      colour: 'Blue',
-      size: 'M',
-      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/blue-shirt-men.png']
-    },
-    {
-      name: 'Women\'s Summer Dress',
-      description: 'Floral print summer dress',
-      price: 59.99,
-      category_id: womenCategory[0]?.category_id,
-      sub_category_id: topSubCategory[0]?.sub_category_id,
-      brand_id: zaraBrand[0]?.brand_id,
-      stock_quantity: 45,
-      colour: 'Red',
-      size: 'S',
-      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/red-dress-women.png']
-    },
-    {
-      name: 'Men\'s Denim Jeans',
-      description: 'Classic fit denim jeans',
-      price: 79.99,
-      category_id: menCategory[0]?.category_id,
-      sub_category_id: bottomsSubCategory[0]?.sub_category_id,
-      brand_id: hmBrand[0]?.brand_id,
-      stock_quantity: 60,
-      colour: 'Dark Blue',
-      size: '32',
-      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/blue-jeans-men.png']
-    },
-    {
-      name: 'Women\'s Leather Jacket',
-      description: 'Genuine leather biker jacket',
-      price: 199.99,
-      category_id: womenCategory[0]?.category_id,
-      sub_category_id: jacketSubCategory[0]?.sub_category_id,
-      brand_id: zaraBrand[0]?.brand_id,
-      stock_quantity: 25,
-      colour: 'Black',
-      size: 'M',
-      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/leather-jacket-women.png']
-    },
-    {
-      name: 'Unisex Leather Belt',
-      description: 'Genuine leather belt with silver buckle',
-      price: 39.99,
-      category_id: accessoriesCategory[0]?.category_id,
-      sub_category_id: null,
-      brand_id: hmBrand[0]?.brand_id,
-      stock_quantity: 75,
-      colour: 'Brown',
-      size: 'L',
-      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/brown-belt-women.png']
-    },
-    {
-      name: 'Men\'s Winter Puffer Jacket',
-      description: 'Warm insulated winter coat',
-      price: 149.99,
-      category_id: menCategory[0]?.category_id,
-      sub_category_id: jacketSubCategory[0]?.sub_category_id,
-      brand_id: nikeBrand[0]?.brand_id,
-      stock_quantity: 30,
-      colour: 'Navy',
-      size: 'L',
-      photos: ['https://jdxxbculnjtbkhbppjur.supabase.co/storage/v1/object/public/products/navy-puffer-men.png']
-    }
-  ];
-
-  const insertedProducts = await Promise.all(
-    products.map(
-      (product) => sql`
-        INSERT INTO products (name, description, price, category_id, sub_category_id, brand_id, stock_quantity, colour, size, photos)
-        VALUES (${product.name}, ${product.description}, ${product.price}, ${product.category_id}, ${product.sub_category_id}, ${product.brand_id}, ${product.stock_quantity}, ${product.colour}, ${product.size}, ${product.photos})
-        ON CONFLICT (product_id) DO NOTHING;
-      `,
-    ),
-  );
-
-  return insertedProducts;
+  return [];
 }
 
 async function seedCustomers() {
@@ -380,6 +284,18 @@ async function seedOrderItems() {
   return [];
 }
 
+async function ensureWishlistTable() {
+  await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS wishlist (
+      customer_id UUID REFERENCES customers(customer_id) ON DELETE CASCADE,
+      product_id UUID REFERENCES products(product_id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (customer_id, product_id)
+    );
+  `;
+}
+
 async function seedUploadedPhotos() {
   await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
   
@@ -528,6 +444,7 @@ export async function GET() {
       await seedCustomers();
       await seedOrders();
       await seedOrderItems();
+      await ensureWishlistTable();
       await seedUploadedPhotos();
       await seedAIGeneratedPhotos();
       await seedChatbotLogs();

@@ -332,3 +332,76 @@ export async function fetchOrdersForCustomer(customerId: string): Promise<OrderW
   `;
   return rows;
 }
+
+// --- Products (detail) ---
+
+export type ProductDetail = {
+  product_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category_id: string | null;
+  sub_category_id: string | null;
+  brand_id: string | null;
+  colour: string | null;
+  size: string | null;
+  fit?: string | null;
+  material?: string | null;
+  photos: string[] | null;
+  created_at: string;
+  brand_name: string | null;
+  category_name: string | null;
+  subcategory_name: string | null;
+  ai_photos?: string[] | null;
+};
+
+export async function fetchProductById(productId: string): Promise<ProductDetail | null> {
+  if (!productId) return null;
+
+  const rows = await sql<ProductDetail[]>`
+    SELECT
+      p.product_id,
+      p.name,
+      p.description,
+      p.price,
+      p.category_id,
+      p.sub_category_id,
+      p.brand_id,
+      p.colour,
+      p.size,
+      p.fit,
+      p.material,
+      p.photos,
+      p.created_at,
+      b.name AS brand_name,
+      c.name AS category_name,
+      sc.name AS subcategory_name,
+      ARRAY_REMOVE(ARRAY_AGG(agp.image_url ORDER BY agp.created_at DESC), NULL) AS ai_photos
+    FROM products p
+    LEFT JOIN brands b ON b.brand_id = p.brand_id
+    LEFT JOIN categories c ON c.category_id = p.category_id
+    LEFT JOIN sub_categories sc ON sc.sub_category_id = p.sub_category_id
+    LEFT JOIN ai_generated_photos agp ON agp.product_id = p.product_id
+    WHERE p.product_id::text = ${productId}
+    GROUP BY p.product_id, b.name, c.name, sc.name
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
+}
+
+export type ProductFeedback = {
+  photo_id: string;
+  image_url: string;
+  customer_id: string | null;
+  created_at: string;
+};
+
+export async function fetchProductFeedback(productId: string): Promise<ProductFeedback[]> {
+  const rows = await sql<ProductFeedback[]>`
+    SELECT photo_id, image_url, customer_id, created_at
+    FROM uploaded_photos
+    WHERE product_id = ${productId}
+    ORDER BY created_at DESC
+  `;
+  return rows;
+}

@@ -70,9 +70,9 @@ export default function Navbar() {
             <button aria-label="Search" className="hidden md:block text-gray-700 hover:text-blue-700">
               <Search size={20} />
             </button>
-            <button aria-label="Favourites" className="text-gray-700 hover:text-blue-700">
+            <Link aria-label="Favourites" href="/wishlist" className="text-gray-700 hover:text-blue-700">
               <Heart size={20} />
-            </button>
+            </Link>
             <Link aria-label="Profile" href="/profile" className="text-gray-700 hover:text-blue-700">
               <User size={20} />
             </Link>

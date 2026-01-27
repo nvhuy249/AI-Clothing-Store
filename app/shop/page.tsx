@@ -59,22 +59,32 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
       {/* Products Grid */}
       <div className="w-full md:w-3/4 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((prod, index) => (
-          <div key={prod.product_id || index} className="border rounded-lg p-3">
-            {Array.isArray(prod.photos) && prod.photos.length > 0 ? (
-              <img
-                src={prod.photos[0]}
-                alt={prod.name}
-                className="w-full h-100 object-cover rounded-md"
-              />
-            ) : (
-              <div className="w-full h-48 bg-gray-200 rounded-md" />
-            )}
+            {products.map((prod, index) => {
+              const pid = prod.product_id;
+              const href = pid ? `/product/${pid}` : '#';
+              return (
+                <Link
+                  key={pid || index}
+                  href={href}
+                  className={`border rounded-lg p-3 hover:shadow-lg transition-shadow ${
+                    pid ? '' : 'pointer-events-none opacity-60'
+                  }`}
+                >
+                  {Array.isArray(prod.photos) && prod.photos.length > 0 ? (
+                    <img
+                      src={prod.photos[0]}
+                      alt={prod.name}
+                      className="w-full h-100 object-cover rounded-md"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-gray-200 rounded-md" />
+                  )}
 
-            <h2 className="font-semibold mt-2">{prod.name}</h2>
-            <p>${prod.price}</p>
-          </div>
-        ))}
+                  <h2 className="font-semibold mt-2">{prod.name}</h2>
+                  <p>${prod.price}</p>
+                </Link>
+              );
+            })}
 
         {/* Pagination */}
         <div className="col-span-full flex gap-2 mt-6">
