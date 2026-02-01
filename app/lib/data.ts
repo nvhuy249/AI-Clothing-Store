@@ -142,8 +142,16 @@ export async function fetchFilteredProductsPage(
       product.colour,
       product.size,
       product.created_at,
-      product.photos
+      product.photos,
+      ai.image_url AS ai_photo
     FROM products AS product
+    LEFT JOIN LATERAL (
+      SELECT image_url
+      FROM ai_generated_photos
+      WHERE product_id = product.product_id
+      ORDER BY created_at DESC
+      LIMIT 1
+    ) ai ON TRUE
     WHERE
       (${query ? sql`product.name ILIKE ${"%" + query + "%"}` : sql`TRUE`})
       AND (${categoryId ? sql`product.category_id = ${categoryId}` : sql`TRUE`})

@@ -102,6 +102,7 @@ async function seedBrands() {
 async function seedProducts() {
   await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
   
+  // Ensure products table and new columns exist without inserting data
   await sql`
     CREATE TABLE IF NOT EXISTS products (
       product_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -120,6 +121,10 @@ async function seedProducts() {
       photos TEXT[]
     );
   `;
+
+  // Backfill columns if table pre-exists without them
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS fit VARCHAR(100);`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS material VARCHAR(100);`;
 
   return [];
 }

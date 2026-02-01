@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from 'react';
 import FilterSidebar from '../components/filter-sidebar';
 import { fetchFilteredProductsPage, fetchFilterOptions, fetchSubCategoriesByCategory, fetchBrands, fetchCategories, fetchSubcategories } from "../lib/data";
+import ProductCard, { ProductListItem } from "../components/ProductCard";
 
 function toUrlParams(obj: Record<string, any>) {
   const p = new URLSearchParams();
@@ -59,31 +60,17 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
       {/* Products Grid */}
       <div className="w-full md:w-3/4 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((prod, index) => {
+            {products.map((prod: any, index) => {
               const pid = prod.product_id;
               const href = pid ? `/product/${pid}` : '#';
-              return (
-                <Link
-                  key={pid || index}
-                  href={href}
-                  className={`border rounded-lg p-3 hover:shadow-lg transition-shadow ${
-                    pid ? '' : 'pointer-events-none opacity-60'
-                  }`}
-                >
-                  {Array.isArray(prod.photos) && prod.photos.length > 0 ? (
-                    <img
-                      src={prod.photos[0]}
-                      alt={prod.name}
-                      className="w-full h-100 object-cover rounded-md"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-200 rounded-md" />
-                  )}
-
-                  <h2 className="font-semibold mt-2">{prod.name}</h2>
-                  <p>${prod.price}</p>
-                </Link>
-              );
+              const item: ProductListItem = {
+                product_id: pid || undefined,
+                name: prod.name,
+                price: prod.price,
+                photos: prod.photos,
+                ai_photo: prod.ai_photo,
+              };
+              return <ProductCard key={pid || index} product={item} href={href} />;
             })}
 
         {/* Pagination */}

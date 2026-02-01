@@ -3,10 +3,10 @@ import { generateAiOutfitImage, upsertAiPhoto, getProductsMissingAi, assertAiEna
 
 export async function POST(req: Request) {
   try {
-    const { adminToken } = (await req.json().catch(() => ({}))) || {};
+    const { adminToken, force } = (await req.json().catch(() => ({}))) || {};
     assertAiEnabled(adminToken);
 
-    const productIds = await getProductsMissingAi(20);
+    const productIds = force ? await getProductsAny(20) : await getProductsMissingAi(20);
     const results: Array<{ productId: string; url?: string; error?: string }> = [];
 
     for (const productId of productIds) {
