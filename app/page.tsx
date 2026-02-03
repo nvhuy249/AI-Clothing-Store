@@ -6,15 +6,17 @@ export default function Home() {
     <main className="flex flex-col items-center w-full pt-16 md:pt-0">
 
       {/* HERO SECTION */}
-      <section className="relative w-full">
-        <Image
-          src="/images/page-hero.png"
-          alt="Hero"
-          width={1920}
-          height={1080}
-          priority
-          className="w-full h-auto object-cover"
-        />
+      <section className="relative w-full flex justify-center px-4 py-6">
+        <div className="w-full max-w-5xl">
+          <Image
+            src="/images/page-hero.png"
+            alt="Hero"
+            width={1920}
+            height={1080}
+            priority
+            className="w-full h-auto object-contain"
+          />
+        </div>
 
         {/* Overlay text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 bg-black/20">
@@ -28,7 +30,7 @@ export default function Home() {
           </p>
 
           <Link
-            href="/generate"
+            href="/shop"
             className="bg-black px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4
              text-sm sm:text-base md:text-lg rounded-lg transition transform active:scale-95 active:bg-gray-800"
           >

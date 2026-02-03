@@ -4,6 +4,8 @@ import { cookies } from 'next/headers';
 import { fetchProductById, fetchProductFeedback } from '../../lib/data';
 import WishlistButton from '../../components/WishlistButton';
 import ProductGallery from '../../components/ProductGallery';
+import TryOnUploader from '../../components/TryOnUploader';
+import AddToCartButton from '../../components/AddToCartButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,12 +26,13 @@ export default async function ProductPage({ params }: Props) {
 
   const feedback = await fetchProductFeedback(product.product_id);
   const allPhotos = [
-    ...(product.photos ?? []),
-    ...(product.ai_photos ?? []),
+    ...((product?.photos as string[] | null) ?? []),
+    ...((product?.ai_photos as string[] | null) ?? []),
   ];
 
   const cookieStore = await cookies();
   const authed = !!cookieStore.get('userEmail');
+  const aiEnabled = process.env.AI_IMAGES_ENABLED === 'true';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white px-4 py-12 pt-18">
@@ -63,9 +66,12 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           <div className="space-y-3">
-            <button className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-semibold">
-              Add to Cart
-            </button>
+            <AddToCartButton
+              productId={product.product_id}
+              name={product.name}
+              price={Number(product.price)}
+              photo={product.photos?.[0]}
+            />
             <WishlistButton productId={product.product_id} authed={authed} />
             {!authed && (
               <Link href="/login" className="block text-center text-sm text-blue-300 hover:text-blue-200">
@@ -80,6 +86,8 @@ export default async function ProductPage({ params }: Props) {
               Size listed: {product.size || '—'}. For best fit, compare with your favorite similar garment.
             </p>
           </div>
+
+          <TryOnUploader productId={product.product_id} aiEnabled={aiEnabled} authed={authed} />
         </div>
       </div>
 

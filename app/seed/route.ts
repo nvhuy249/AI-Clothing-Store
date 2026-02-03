@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { address } from 'framer-motion/client';
 import postgres from 'postgres';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
@@ -197,6 +198,9 @@ async function seedOrders() {
       order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       status VARCHAR(50) DEFAULT 'pending',
       total_amount DECIMAL(10, 2) NOT NULL,
+      address TEXT NOT NULL,
+      note TEXT,
+      phone VARCHAR(20),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
@@ -209,12 +213,14 @@ async function seedOrders() {
     {
       customer_id: customer1[0]?.customer_id,
       status: 'completed',
-      total_amount: 109.98
+      total_amount: 109.98,
+      address: '123 Main St, New York, NY'
     },
     {
       customer_id: customer2[0]?.customer_id,
       status: 'pending',
-      total_amount: 199.99
+      total_amount: 199.99,
+      address: '456 Oak Ave, Los Angeles, CA'
     }
   ];
 

@@ -1,12 +1,14 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Settings } from 'lucide-react';
-import { fetchCustomerByEmail, fetchOrdersForCustomer } from '../lib/data';
+import { fetchCustomerByEmail, fetchOrdersForCustomer, fetchUserTryOnGallery } from '../lib/data';
 
 export const dynamic = 'force-dynamic';
 
 const formatDate = (d: string) => new Date(d).toLocaleDateString();
 const formatMoney = (n: number) => `$${Number(n).toFixed(2)}`;
+
+import TryOnGallery from '../components/TryOnGallery';
 
 export default async function ProfilePage() {
   const cookieStore = await cookies();
@@ -28,6 +30,7 @@ export default async function ProfilePage() {
   }
 
   const orders = await fetchOrdersForCustomer(customer.customer_id);
+  const tryOns = await fetchUserTryOnGallery(customer.customer_id);
 
   return (
     <div className="pt-18 min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white px-4 py-12">
@@ -132,6 +135,8 @@ export default async function ProfilePage() {
             </div>
           )}
         </section>
+
+        <TryOnGallery items={tryOns} />
       </div>
     </div>
   );

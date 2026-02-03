@@ -47,6 +47,40 @@ async function persistProductImage(sourceUrl: string, productId: string, modelTa
   }
 }
 
+async function insertUserAiPhoto(productId: string, customerId: string | null, imageUrl: string, model: string) {
+  await sql`
+    INSERT INTO ai_generated_photos (customer_id, product_id, image_url, ai_model_version)
+    VALUES (${customerId}, ${productId}, ${imageUrl}, ${model})
+    ON CONFLICT (photo_id) DO NOTHING
+  `;
+}
+
+async function fetchBuffer(url: string): Promise<{ buffer: Buffer; contentType: string }> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch image: ${res.status} ${res.statusText}`);
+  const ct = res.headers.get('content-type') || 'image/png';
+  const buf = Buffer.from(await res.arrayBuffer());
+  return { buffer: buf, contentType: ct };
+}
+
+async function persistUserTryonImage(sourceUrl: string, productId: string, customerId: string | null): Promise<string> {
+  if (!hasSupabaseStorage()) return sourceUrl;
+  try {
+    if (sourceUrl.startsWith('data:image')) {
+      const b64 = sourceUrl.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+    const key = `user-tryon/${customerId || 'anon'}-${productId}-${Date.now()}.png`;
+    return await uploadBase64PngToSupabase(b64, key, { public: false });
+  }
+  const { buffer, contentType } = await fetchBuffer(sourceUrl);
+  const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+  const key = `user-tryon/${customerId || 'anon'}-${productId}-${Date.now()}.${ext}`;
+  return await uploadBufferToSupabase(buffer, key, contentType, { public: false, expiresIn: 60 * 60 * 24 * 7 });
+} catch (e) {
+  console.warn('Supabase upload failed (user tryon), using source URL', e);
+  return sourceUrl;
+}
+}
+
 async function runReplicateViton(input: VitonInput): Promise<string> {
   if (!REPLICATE_TOKEN) throw new Error('REPLICATE_API_TOKEN is required for VITON try-on.');
 
@@ -217,3 +251,67 @@ export async function dressProductWithViton(productId: string, baseModelUrl?: st
 }
 
 export { generateStabilityBaseModelImages };
+
+export async function dressUserWithTryon(
+  product: Awaited<ReturnType<typeof fetchProductById>>,
+  humanUrl: string,
+  customerId: string | null,
+): Promise<string> {
+  if (!product) throw new Error('Product not found');
+  // Belts: Stability inpaint
+  if (isBelt(product)) {
+    const url = await generateStabilityImageForBase(product, humanUrl);
+    const finalUrl = await persistUserTryonImage(url, product.product_id, customerId);
+    await insertUserAiPhoto(product.product_id, customerId, finalUrl, 'stability-user');
+    return finalUrl;
+  }
+
+  const clothUrl = (product.photos && product.photos[0]) || '';
+  if (!clothUrl) throw new Error('Product has no photo to use as garment.');
+
+  const clothType = inferClothType(product);
+  const fitNote =
+    product.fit && product.fit.toLowerCase().match(/baggy|loose|relaxed/)
+      ? 'baggy/loose fit: wide leg, roomy silhouette, no taper'
+      : product.fit && product.fit.toLowerCase().match(/slim|skinny/)
+      ? 'slim fit'
+      : '';
+
+  const lengthNote =
+    clothType === 'dresses'
+      ? (product.description || product.name || '').toLowerCase().includes('midi')
+        ? 'midi length dress'
+        : (product.description || product.name || '').toLowerCase().includes('maxi')
+        ? 'maxi length dress'
+        : (product.description || product.name || '').toLowerCase().includes('mini')
+        ? 'mini length dress'
+        : 'knee-length dress'
+      : '';
+
+  const garmentDesc = [
+    product.name,
+    product.colour ? `color ${product.colour}` : '',
+    fitNote || (product.fit ? `fit ${product.fit}` : ''),
+    product.material ? `material ${product.material}` : '',
+    lengthNote,
+    product.description || '',
+    'avoid changing silhouette; keep stated fit and length; no turning belt into jacket; do not slim wide legs',
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  const clothInput = clothUrl.startsWith('http')
+    ? clothUrl
+    : `data:image/png;base64,${await resizeBase64ToPng(await fetchImageAsBase64(clothUrl), 768, 1024, 'contain')}`;
+  const humanInput = humanUrl;
+
+  const outputUrl = await runReplicateViton({
+    humanImage: humanInput,
+    clothImage: clothInput,
+    clothType,
+    garmentDesc,
+  });
+  const finalUrl = await persistUserTryonImage(outputUrl, product.product_id, customerId);
+  await insertUserAiPhoto(product.product_id, customerId, finalUrl, 'viton-user');
+  return finalUrl;
+}

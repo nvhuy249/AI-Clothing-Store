@@ -148,7 +148,7 @@ export async function fetchFilteredProductsPage(
     LEFT JOIN LATERAL (
       SELECT image_url
       FROM ai_generated_photos
-      WHERE product_id = product.product_id
+      WHERE product_id = product.product_id AND customer_id IS NULL
       ORDER BY created_at DESC
       LIMIT 1
     ) ai ON TRUE
@@ -389,7 +389,7 @@ export async function fetchProductById(productId: string): Promise<ProductDetail
     LEFT JOIN brands b ON b.brand_id = p.brand_id
     LEFT JOIN categories c ON c.category_id = p.category_id
     LEFT JOIN sub_categories sc ON sc.sub_category_id = p.sub_category_id
-    LEFT JOIN ai_generated_photos agp ON agp.product_id = p.product_id
+    LEFT JOIN ai_generated_photos agp ON agp.product_id = p.product_id AND agp.customer_id IS NULL
     WHERE p.product_id::text = ${productId}
     GROUP BY p.product_id, b.name, c.name, sc.name
     LIMIT 1
@@ -404,12 +404,30 @@ export type ProductFeedback = {
   created_at: string;
 };
 
+export type UserTryOn = {
+  photo_id: string;
+  image_url: string;
+  product_id: string | null;
+  created_at: string;
+};
+
 export async function fetchProductFeedback(productId: string): Promise<ProductFeedback[]> {
   const rows = await sql<ProductFeedback[]>`
     SELECT photo_id, image_url, customer_id, created_at
     FROM uploaded_photos
     WHERE product_id = ${productId}
     ORDER BY created_at DESC
+  `;
+  return rows;
+}
+
+export async function fetchUserTryOnGallery(customerId: string): Promise<UserTryOn[]> {
+  const rows = await sql<UserTryOn[]>`
+    SELECT photo_id, image_url, product_id, created_at
+    FROM ai_generated_photos
+    WHERE customer_id = ${customerId}
+    ORDER BY created_at DESC
+    LIMIT 50
   `;
   return rows;
 }
