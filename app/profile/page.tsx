@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+﻿import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Settings } from 'lucide-react';
 import { fetchCustomerByEmail, fetchOrdersForCustomer, fetchUserTryOnGallery } from '../lib/data';
@@ -37,7 +37,7 @@ export default async function ProfilePage() {
       <div className="max-w-5xl mx-auto space-y-8">
         <header className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-400">Welcome back</p>
+            <p className="text-sm text-[color:var(--text-muted)]">Welcome back</p>
             <h1 className="text-3xl font-semibold">{customer.name}</h1>
           </div>
           <button className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-blue-400 text-sm flex items-center gap-2">
@@ -51,24 +51,24 @@ export default async function ProfilePage() {
             <h2 className="text-lg font-semibold mb-3">Account Details</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-slate-400">Name</dt>
-                <dd className="text-slate-100">{customer.name}</dd>
+                <dt className="text-[color:var(--text-muted)]">Name</dt>
+                <dd className="text-[color:var(--text-primary)]">{customer.name}</dd>
               </div>
               <div>
-                <dt className="text-slate-400">Email</dt>
-                <dd className="text-slate-100">{customer.email}</dd>
+                <dt className="text-[color:var(--text-muted)]">Email</dt>
+                <dd className="text-[color:var(--text-primary)]">{customer.email}</dd>
               </div>
               <div>
-                <dt className="text-slate-400">Phone</dt>
-                <dd className="text-slate-100">{customer.phone || '—'}</dd>
+                <dt className="text-[color:var(--text-muted)]">Phone</dt>
+                <dd className="text-[color:var(--text-primary)]">{customer.phone || 'â€”'}</dd>
               </div>
               <div>
-                <dt className="text-slate-400">Member since</dt>
-                <dd className="text-slate-100">{formatDate(customer.created_at)}</dd>
+                <dt className="text-[color:var(--text-muted)]">Member since</dt>
+                <dd className="text-[color:var(--text-primary)]">{formatDate(customer.created_at)}</dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="text-slate-400">Address</dt>
-                <dd className="text-slate-100 whitespace-pre-wrap">{customer.address || '—'}</dd>
+                <dt className="text-[color:var(--text-muted)]">Address</dt>
+                <dd className="text-[color:var(--text-primary)] whitespace-pre-wrap">{customer.address || 'â€”'}</dd>
               </div>
             </dl>
           </div>
@@ -95,36 +95,36 @@ export default async function ProfilePage() {
         <section className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Order History</h2>
-            <span className="text-sm text-slate-400">{orders.length} orders</span>
+            <span className="text-sm text-[color:var(--text-muted)]">{orders.length} orders</span>
           </div>
           {orders.length === 0 ? (
-            <div className="text-slate-400 text-sm">No orders yet.</div>
+            <div className="text-[color:var(--text-muted)] text-sm">No orders yet.</div>
           ) : (
             <div className="space-y-4">
               {orders.map((order) => (
                 <div key={order.order_id} className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
                   <div className="flex flex-wrap gap-3 items-center justify-between">
                     <div>
-                      <p className="text-sm text-slate-400">Order #{order.order_id.slice(0, 8)}</p>
-                      <p className="text-sm text-slate-300">{formatDate(order.order_date)}</p>
+                      <p className="text-sm text-[color:var(--text-muted)]">Order #{order.order_id.slice(0, 8)}</p>
+                      <p className="text-sm text-[color:var(--text-muted)]">{formatDate(order.order_date)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-slate-300">Status</p>
+                      <p className="text-sm text-[color:var(--text-muted)]">Status</p>
                       <p className="font-semibold capitalize">{order.status}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-slate-300">Total</p>
+                      <p className="text-sm text-[color:var(--text-muted)]">Total</p>
                       <p className="font-semibold">{formatMoney(order.total_amount)}</p>
                     </div>
                   </div>
                   <div className="mt-3 border-t border-slate-800 pt-3 space-y-2">
                     {order.items.map((item) => (
-                      <div key={item.order_item_id} className="flex justify-between text-sm text-slate-200">
+                      <div key={item.order_item_id} className="flex justify-between text-sm text-[color:var(--text-primary)]">
                         <div className="flex gap-2">
-                          <span className="text-slate-400">x{item.quantity}</span>
+                          <span className="text-[color:var(--text-muted)]">x{item.quantity}</span>
                           <span>{item.product_name || 'Product'}</span>
                         </div>
-                        <span className="text-slate-300">
+                        <span className="text-[color:var(--text-muted)]">
                           {formatMoney(item.unit_price * item.quantity)}
                         </span>
                       </div>
@@ -141,3 +141,5 @@ export default async function ProfilePage() {
     </div>
   );
 }
+
+

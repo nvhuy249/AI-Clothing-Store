@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { fetchCustomerByEmail } from '../../../lib/data';
 
@@ -18,3 +18,4 @@ export async function GET() {
     address: customer.address,
   });
 }
+

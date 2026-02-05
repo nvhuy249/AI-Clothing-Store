@@ -1,3 +1,4 @@
+﻿/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState } from 'react';
@@ -17,7 +18,7 @@ export default function ProductGallery({ photos, alt }: Props) {
         {main ? (
           <img src={main} alt={alt} className="h-full w-full object-contain" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-400">No image</div>
+          <div className="w-full h-full flex items-center justify-center text-[color:var(--text-muted)]">No image</div>
         )}
       </div>
       {photos.length > 1 && (
@@ -38,3 +39,7 @@ export default function ProductGallery({ photos, alt }: Props) {
     </div>
   );
 }
+
+
+
+

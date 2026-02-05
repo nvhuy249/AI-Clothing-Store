@@ -1,10 +1,8 @@
-import postgres, { Sql } from 'postgres';
+﻿import postgres, { Sql } from 'postgres';
 import {
-  ProductFilters,
   Brand,
   Category,
   SubCategory,
-  ProductWithRelations,
 } from './definitions';
 
 // Postgres client
@@ -103,7 +101,7 @@ export async function fetchFilteredProductsPage(
   maxPrice: number | null,
   sort: string | null,
   page: number
-) {
+): Promise<{ products: ProductWithRelations[]; totalPages: number }> {
   const offset = (page - 1) * ITEMS_PER_PAGE;
 
   // Determine sort clause safely using sql.unsafe for dynamic ORDER BY
@@ -431,3 +429,6 @@ export async function fetchUserTryOnGallery(customerId: string): Promise<UserTry
   `;
   return rows;
 }
+
+
+

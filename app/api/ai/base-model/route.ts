@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { assertAiEnabled, checkDailyCap, generateBaseModelImages } from '../../../lib/ai';
 
 export async function POST(req: Request) {
@@ -8,8 +8,10 @@ export async function POST(req: Request) {
     await checkDailyCap();
     const urls = await generateBaseModelImages(count);
     return NextResponse.json({ urls });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Base model generation error', error);
-    return NextResponse.json({ error: error.message || 'Failed to generate base models' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to generate base models';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

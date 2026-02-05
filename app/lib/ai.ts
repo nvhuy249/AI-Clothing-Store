@@ -1,7 +1,6 @@
-import { fetchProductById } from './data';
+﻿import { fetchProductById } from './data';
 import postgres from 'postgres';
 import sharp from 'sharp';
-import { Blob } from 'buffer';
 import { hasSupabaseStorage, uploadBase64PngToSupabase } from './storage';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
@@ -12,10 +11,6 @@ const ADMIN_TOKEN = process.env.AI_IMAGES_ADMIN_TOKEN;
 const STABILITY_API_KEY = process.env.STABILITY_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const DEFAULT_IMG_SIZE = 1024;
-const REPLICATE_TOKEN = process.env.REPLICATE_API_TOKEN;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'ai-images';
 
 export function assertAiEnabled(adminToken?: string) {
   if (!ENABLED) {
@@ -50,15 +45,6 @@ export async function generateAiOutfitImage(productId: string): Promise<string> 
   const desc = (product.description || '').trim();
   const fit = (product.fit || '').trim();
   const material = (product.material || '').trim();
-  const gender =
-    (product.category_name || '').toLowerCase().includes('women') ||
-    (product.subcategory_name || '').toLowerCase().includes('women')
-      ? 'female'
-      : (product.category_name || '').toLowerCase().includes('men') ||
-        (product.subcategory_name || '').toLowerCase().includes('men')
-      ? 'male'
-      : 'unisex';
-
   const prompt = [
     `E-commerce studio photo, must exactly match the real garment silhouette and details.`,
     `Full-body model, neutral pose, facing camera, balanced lighting, clean light-gray background.`,
@@ -66,7 +52,7 @@ export async function generateAiOutfitImage(productId: string): Promise<string> 
     `- Name: "${product.name}"`,
     `- Brand: ${product.brand_name ?? 'Unbranded'}`,
     `- Category: ${product.category_name ?? 'Apparel'}${product.subcategory_name ? ` / ${product.subcategory_name}` : ''}`,
-    `- Colour: ${product.colour ?? 'unspecified'} — keep this exact hue.`,
+    `- Colour: ${product.colour ?? 'unspecified'} â€” keep this exact hue.`,
     `- Size shown: ${product.size ?? 'standard sample size'}.`,
     fit ? `- Fit / cut: ${fit} (keep leg width/shape consistent; do not slim or taper if marked baggy/loose).` : '',
     material ? `- Material: ${material}.` : '',
@@ -246,9 +232,9 @@ export async function generateBaseModelImages(count = 4): Promise<string[]> {
 
   const data = await response.json();
   const urls: string[] =
-    data?.data
-      ?.map((d: any) => d.url || (d.b64_json && `data:image/png;base64,${d.b64_json}`))
-      ?.filter(Boolean) || [];
+    (data?.data as Array<{ url?: string; b64_json?: string }> | undefined)
+      ?.map((d) => d.url || (d.b64_json && `data:image/png;base64,${d.b64_json}`))
+      ?.filter((u): u is string => Boolean(u)) || [];
   if (!urls.length) throw new Error('No base model images returned.');
 
   for (const url of urls) {
@@ -265,11 +251,10 @@ export async function generateStabilityBaseModelImages(count = 4): Promise<strin
   if (!STABILITY_API_KEY) throw new Error('STABILITY_API_KEY is required to generate base models via Stability.');
 
   const urls: string[] = [];
-  const genders: Array<'male' | 'female'> = ['male', 'female'];
   const total = Math.min(Math.max(count, 1), 8);
 
   for (let i = 0; i < total; i++) {
-    const gender = genders[i % genders.length];
+    const gender = i % 2 === 0 ? 'female' : 'male';
     const prompt = `Photorealistic full-body ${gender} fashion model, head-to-toe fully visible (include feet), centered, no cropping, neutral standing pose, plain light-gray studio background, soft even lighting, fully clothed in a simple long-sleeve top and full-length pants (no skin-tight clothing), no logos or accessories, professional studio look, realistic proportions.`;
 
     const form = new FormData();
@@ -282,7 +267,7 @@ export async function generateStabilityBaseModelImages(count = 4): Promise<strin
         Authorization: `Bearer ${STABILITY_API_KEY}`,
         Accept: 'application/json',
       },
-      body: form as any,
+      body: form,
     });
     if (!resp.ok) {
       const err = await resp.text();
@@ -359,7 +344,6 @@ export async function generateStabilityImage(productId: string): Promise<string>
         (product.subcategory_name || '').toLowerCase().includes('men')
       ? 'male'
       : 'unisex';
-
   const prompt = [
     `Full-body photo of a ${gender} fashion model wearing the garment. Include head, torso, arms, legs; neutral standing pose; clean light-gray background; balanced studio lighting.`,
     `Match the real garment exactly (silhouette, colour, fabric).`,
@@ -390,7 +374,7 @@ export async function generateStabilityImage(productId: string): Promise<string>
   const form = new FormData();
   const imageBlob = pngBlobFromBase64(base64);
 
-  form.append('image', imageBlob as any, 'init.png');
+  form.append('image', imageBlob as Blob, 'init.png');
   form.append('prompt', prompt);
   form.append('negative_prompt', negativePrompt);
   form.append('strength', '0.7'); // higher strength to allow adding the model
@@ -402,7 +386,7 @@ export async function generateStabilityImage(productId: string): Promise<string>
       Authorization: `Bearer ${STABILITY_API_KEY}`,
       Accept: 'application/json',
     },
-    body: form as any,
+    body: form,
   });
 
   if (!response.ok) {
@@ -451,7 +435,6 @@ export async function generateStabilityImageForBase(
       // ignore if color extraction fails
     }
   }
-
   const prompt = [
     `Full-body photo of a ${gender} fashion model wearing the garment. Include head, torso, arms, legs; neutral standing pose; clean light-gray background; balanced studio lighting.`,
     `Match the real garment exactly (silhouette, colour, fabric). Preserve garment width and shape; do not change fit.`,
@@ -489,8 +472,8 @@ export async function generateStabilityImageForBase(
   const imgFile = pngBlobFromBase64(base64);
   const maskFile = pngBlobFromBuffer(maskBuf);
 
-  form.append('image', imgFile as any, 'base.png');
-  form.append('mask', maskFile as any, 'mask.png');
+  form.append('image', imgFile as Blob, 'base.png');
+  form.append('mask', maskFile as Blob, 'mask.png');
   form.append('prompt', prompt);
   form.append('negative_prompt', negativePrompt);
   form.append('strength', '0.35'); // allow garment width changes while keeping body/pose
@@ -502,7 +485,7 @@ export async function generateStabilityImageForBase(
       Authorization: `Bearer ${STABILITY_API_KEY}`,
       Accept: 'application/json',
     },
-    body: form as any,
+    body: form,
   });
 
   if (!response.ok) {
@@ -517,3 +500,8 @@ export async function generateStabilityImageForBase(
   if (!b64) throw new Error(`No image returned from Stability. Raw: ${JSON.stringify(data)}`);
   return `data:image/png;base64,${b64}`;
 }
+
+
+
+
+

@@ -1,10 +1,8 @@
-import Link from "next/link";
-import { Suspense } from 'react';
-import FilterSidebar from '../components/filter-sidebar';
-import { fetchFilteredProductsPage, fetchFilterOptions, fetchSubCategoriesByCategory, fetchBrands, fetchCategories, fetchSubcategories } from "../lib/data";
+﻿import FilterSidebar from "../components/filter-sidebar";
+import { fetchFilteredProductsPage, fetchFilterOptions, fetchSubCategoriesByCategory } from "../lib/data";
 import ProductCard, { ProductListItem } from "../components/ProductCard";
 
-function toUrlParams(obj: Record<string, any>) {
+function toUrlParams(obj: Record<string, string | undefined>) {
   const p = new URLSearchParams();
   for (const key of Object.keys(obj)) {
     const val = obj[key];
@@ -51,7 +49,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   );
 
   return (
-    <div className="p-4 md:flex md:gap-6 pt-20">
+    <div className="max-w-6xl mx-auto px-4 pb-16 pt-28 md:flex md:gap-8">
       {/* Filters Sidebar */}
       <FilterSidebar 
             filterOptions={filterOptions} 
@@ -59,8 +57,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           />
 
       {/* Products Grid */}
-      <div className="w-full md:w-3/4 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((prod: any, index) => {
+      <div className="w-full md:w-3/4 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 items-start">
+            {products.map((prod: { product_id?: string; name: string; price: number; photos?: string[]; ai_photo?: string | null }, index) => {
               const pid = prod.product_id;
               const href = pid ? `/product/${pid}` : '#';
               const item: ProductListItem = {
@@ -84,8 +82,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <a
                 key={pageNum}
                 href={`/shop?${newParams.toString()}`}
-                className={`px-3 py-1 border rounded ${
-                  pageNum === page ? "bg-black text-white" : ""
+                aria-current={pageNum === page ? "page" : undefined}
+                className={`px-3 py-2 border border-[color:var(--border-subtle)] rounded-[12px] text-[color:var(--text-primary)] hover:border-[color:var(--border-soft)] hover:shadow-[var(--shadow-soft)] glow-none ${
+                  pageNum === page ? "bg-[color:var(--accent-blue)] text-[color:var(--bg-base)] border-transparent" : ""
                 }`}
               >
                 {pageNum}
@@ -97,3 +96,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     </div>
   );
 }
+
+
+
+

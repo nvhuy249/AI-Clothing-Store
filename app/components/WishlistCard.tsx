@@ -1,3 +1,4 @@
+﻿/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import Link from 'next/link';
@@ -31,8 +32,9 @@ export default function WishlistCard({ productId, name, price, photos }: Props) 
         throw new Error(data.error || 'Could not remove');
       }
       setRemoved(true);
-    } catch (err: any) {
-      setError(err.message || 'Could not remove');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not remove';
+      setError(message);
     } finally {
       setRemoving(false);
     }
@@ -41,28 +43,30 @@ export default function WishlistCard({ productId, name, price, photos }: Props) 
   if (removed) return null;
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 hover:shadow-lg transition-shadow">
+    <div className="rounded-[var(--radius-card)] border border-[color:var(--border-subtle)] bg-[color:var(--bg-panel)] p-4 hover:border-[color:var(--border-soft)] hover:shadow-[var(--shadow-soft)] transition glow-none">
       <Link href={`/product/${productId}`} className="block">
         {photos && photos.length > 0 ? (
           <img
             src={photos[0]}
             alt={name}
-            className="w-full h-40 object-cover rounded-lg mb-3"
+            className="w-full h-40 object-cover rounded-[18px] mb-3 border border-[color:var(--border-subtle)]"
           />
         ) : (
-          <div className="w-full h-40 rounded-lg bg-slate-800 mb-3" />
+          <div className="w-full h-40 rounded-[18px] bg-[color:var(--bg-base)] border border-[color:var(--border-subtle)] mb-3" />
         )}
-        <h3 className="font-semibold text-slate-100">{name}</h3>
-        <p className="text-slate-300 text-sm">{formatMoney(price)}</p>
+        <h3 className="font-semibold text-[color:var(--text-primary)]">{name}</h3>
+        <p className="text-[color:var(--text-muted)] text-sm">{formatMoney(price)}</p>
       </Link>
       <button
         onClick={handleRemove}
         disabled={removing}
-        className="mt-3 w-full py-2 text-sm rounded-lg border border-red-600 text-red-300 hover:bg-red-900/30 disabled:opacity-60"
+        className="btn btn-danger mt-3 w-full py-2 text-sm rounded-[var(--radius-button)] disabled:opacity-60 glow-none"
       >
-        {removing ? 'Removing…' : 'Remove'}
+        {removing ? 'Removing...' : 'Remove'}
       </button>
       {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
     </div>
   );
 }
+
+

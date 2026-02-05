@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCart } from "../hooks/useCart";
 
@@ -14,10 +14,11 @@ export default function AddToCartButton({ productId, name, price, photo }: Props
 
   return (
     <button
-      className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-semibold"
+      className="btn btn-primary w-full py-3 font-semibold glow-none"
       onClick={() => addItem({ productId, name, price, photo })}
     >
       Add to Cart
     </button>
   );
 }
+

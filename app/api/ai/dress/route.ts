@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import postgres from 'postgres';
-import sharp from 'sharp';
 import {
   assertAiEnabled,
   checkDailyCap,
@@ -55,8 +54,10 @@ export async function POST(req: Request) {
     await upsertAiPhoto(product.product_id, dressedUrl);
 
     return NextResponse.json({ url: dressedUrl });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Dress error', error);
-    return NextResponse.json({ error: error.message || 'Dress failed' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Dress failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

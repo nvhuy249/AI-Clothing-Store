@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import postgres from 'postgres';
 
@@ -48,3 +48,4 @@ export async function PUT(req: Request) {
 
   return NextResponse.json({ user: updated[0] });
 }
+

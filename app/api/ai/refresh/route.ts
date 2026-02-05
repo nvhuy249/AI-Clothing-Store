@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { generateAiOutfitImage, upsertAiPhoto, getProductsMissingAi, assertAiEnabled, checkDailyCap } from '../../../lib/ai';
+﻿import { NextResponse } from 'next/server';
+import { generateAiOutfitImage, upsertAiPhoto, getProductsMissingAi, assertAiEnabled, checkDailyCap, getProductsAny } from '../../../lib/ai';
 
 export async function POST(req: Request) {
   try {
@@ -15,14 +15,17 @@ export async function POST(req: Request) {
         const url = await generateAiOutfitImage(productId);
         await upsertAiPhoto(productId, url);
         results.push({ productId, url });
-      } catch (err: any) {
-        results.push({ productId, error: err.message || 'failed' });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'failed';
+        results.push({ productId, error: message });
       }
     }
 
     return NextResponse.json({ results });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI refresh error', error);
-    return NextResponse.json({ error: error.message || 'Refresh failed' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Refresh failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

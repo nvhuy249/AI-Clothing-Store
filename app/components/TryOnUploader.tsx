@@ -1,3 +1,4 @@
+﻿/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -6,9 +7,15 @@ type Props = {
   productId: string;
   aiEnabled: boolean;
   authed: boolean;
+  primaryGlowTarget?: "hero" | "tryon" | "none";
 };
 
-export default function TryOnUploader({ productId, aiEnabled, authed }: Props) {
+export default function TryOnUploader({
+  productId,
+  aiEnabled,
+  authed,
+  primaryGlowTarget = "none",
+}: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -52,8 +59,10 @@ export default function TryOnUploader({ productId, aiEnabled, authed }: Props) {
     }
   };
 
+  const tryOnGlow = primaryGlowTarget === "tryon" ? "glow-primary" : "glow-none";
+
   return (
-    <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-200">
+    <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-sm text-[color:var(--text-muted)]">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-white">Try-On Upload</h3>
         {!authed && <span className="text-xs text-amber-400">Sign in to upload</span>}
@@ -61,12 +70,12 @@ export default function TryOnUploader({ productId, aiEnabled, authed }: Props) {
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <button
             type="button"
             onClick={onPick}
             disabled={disabled}
-            className="w-full py-2 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-50"
+            className="btn btn-secondary w-full py-2 disabled:opacity-50 glow-none"
           >
             Choose photo
           </button>
@@ -74,7 +83,7 @@ export default function TryOnUploader({ productId, aiEnabled, authed }: Props) {
             type="button"
             onClick={onSave}
             disabled={disabled || !file}
-            className="w-full py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50"
+            className={`btn btn-primary w-full py-2 disabled:opacity-50 ${tryOnGlow}`}
           >
             {status === "uploading" ? "Saving..." : "Save & generate"}
           </button>
@@ -86,8 +95,11 @@ export default function TryOnUploader({ productId, aiEnabled, authed }: Props) {
             onChange={onFileChange}
           />
           {status === "error" && <p className="text-xs text-rose-400">Upload failed. Try again.</p>}
-          <p className="text-xs text-slate-400 leading-5">
+          <p className="text-xs text-[color:var(--text-muted)] leading-5">
             Tip: Use a clear, well-lit full-body photo, neutral pose, plain background, no heavy shadows or obstructions. Avoid group photos, cropped heads, or extreme angles for best try-on results.
+          </p>
+          <p className="text-xs text-[color:var(--text-muted)] leading-5">
+            Your photo is private. Used only for preview. Deleted automatically.
           </p>
         </div>
 
@@ -97,10 +109,13 @@ export default function TryOnUploader({ productId, aiEnabled, authed }: Props) {
           ) : preview ? (
             <img src={preview} alt="Selected" className="w-full h-full object-cover opacity-80" />
           ) : (
-            <span className="text-slate-500 text-xs">Upload a photo to see preview</span>
+            <span className="text-[color:var(--text-muted)] text-xs">Upload a photo to see preview</span>
           )}
         </div>
       </div>
     </div>
   );
 }
+
+
+

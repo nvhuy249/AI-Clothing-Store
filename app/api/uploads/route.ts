@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import postgres from 'postgres';
 import { cookies } from 'next/headers';
 import { fetchCustomerByEmail } from '../../lib/data';
-import { uploadBufferToSupabase, uploadBase64PngToSupabase, hasSupabaseStorage } from '../../lib/storage';
+import { uploadBufferToSupabase, hasSupabaseStorage } from '../../lib/storage';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const AI_ENABLED = process.env.AI_IMAGES_ENABLED === 'true';
@@ -43,8 +43,11 @@ export async function POST(req: Request) {
     `;
 
     return NextResponse.json({ url });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Upload error', err);
-    return NextResponse.json({ error: err.message || 'Upload failed' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Upload failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+

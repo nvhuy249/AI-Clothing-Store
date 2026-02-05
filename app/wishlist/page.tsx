@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { fetchCustomerByEmail } from '../lib/data';
@@ -13,7 +13,6 @@ type WishlistItem = {
   price: number;
 };
 
-const formatMoney = (n: number) => `$${Number(n).toFixed(2)}`;
 
 async function fetchWishlist(email: string): Promise<WishlistItem[]> {
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/wishlist`, {
@@ -46,13 +45,13 @@ export default async function WishlistPage() {
       <div className="max-w-5xl mx-auto space-y-8">
         <header className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-400">Wishlist</p>
+            <p className="text-sm text-[color:var(--text-muted)]">Wishlist</p>
             <h1 className="text-3xl font-semibold">{user.name}</h1>
           </div>
         </header>
 
         {items.length === 0 ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-slate-300">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-[color:var(--text-muted)]">
             Your wishlist is empty. Browse the <Link href="/shop" className="text-blue-300 hover:text-blue-200">shop</Link> to add items.
           </div>
         ) : (
@@ -72,3 +71,6 @@ export default async function WishlistPage() {
     </div>
   );
 }
+
+
+

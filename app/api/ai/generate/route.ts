@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { generateAiOutfitImage, upsertAiPhoto, assertAiEnabled, checkDailyCap } from '../../../lib/ai';
 
 export async function POST(req: Request) {
@@ -15,8 +15,10 @@ export async function POST(req: Request) {
     await upsertAiPhoto(productId, url);
 
     return NextResponse.json({ url });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI generate error', error);
-    return NextResponse.json({ error: error.message || 'Generation failed' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Generation failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

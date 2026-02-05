@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import postgres from 'postgres';
 
@@ -44,3 +44,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unable to sign in right now.' }, { status: 500 });
   }
 }
+

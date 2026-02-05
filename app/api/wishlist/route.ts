@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import postgres from 'postgres';
 
@@ -89,3 +89,4 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+

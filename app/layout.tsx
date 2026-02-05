@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/navbar";
 import Footer from "./components/footer";
+import { themeVars } from "./styles/tokens";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -29,7 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${montserrat.variable} ${inter.variable} antialiased flex flex-col min-h-screen bg-gray-50`}>
+      <body
+        style={themeVars}
+        className={`${montserrat.variable} ${inter.variable} antialiased flex flex-col min-h-screen bg-[color:var(--bg-base)] text-[color:var(--text-primary)]`}
+      >
         <Navbar />
         <main className="flex-grow">{children}</main>
         <Footer />
@@ -37,3 +41,4 @@ export default function RootLayout({
     </html>
   );
 }
+

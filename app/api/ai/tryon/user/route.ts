@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { fetchCustomerByEmail, fetchProductById } from '../../../../lib/data';
 import { dressUserWithTryon } from '../../../../lib/tryon';
@@ -35,9 +35,10 @@ export async function POST(req: Request) {
 
     const resultUrl = await dressUserWithTryon(product, humanUrl, customer.customer_id);
     return NextResponse.json({ url: resultUrl });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('User try-on error', err);
-    return NextResponse.json({ error: err.message || 'User try-on failed' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'User try-on failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -63,8 +64,10 @@ export async function DELETE(req: Request) {
     await sql.end();
     if (result.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Delete user try-on error', err);
-    return NextResponse.json({ error: err.message || 'Delete failed' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Delete failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

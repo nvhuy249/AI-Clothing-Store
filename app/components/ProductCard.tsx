@@ -1,3 +1,4 @@
+﻿/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Link from "next/link";
@@ -42,21 +43,35 @@ export default function ProductCard({ product, href, hoverDelayMs = 500 }: Produ
   }, []);
 
   const imgSrc = showAi && ai ? ai : cover;
+  const price = Number(product.price ?? 0);
+  const priceLabel = Number.isFinite(price) ? price.toFixed(2) : "--";
 
   return (
     <Link
       href={href}
-      className={`border rounded-lg p-3 hover:shadow-lg transition-shadow ${product.product_id ? "" : "pointer-events-none opacity-60"}`}
+      className={`group relative flex flex-col gap-3 overflow-hidden rounded-[var(--radius-card)] border border-[rgba(255,255,255,0.1)] bg-[color:var(--bg-panel)] p-4 md:p-5 transition-all duration-200 hover:border-[rgba(255,255,255,0.2)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)] glow-none ${product.product_id ? "" : "pointer-events-none opacity-60"}`}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
-      {imgSrc ? (
-        <img src={imgSrc} alt={product.name} className="w-full h-100 object-cover rounded-md" />
-      ) : (
-        <div className="w-full h-48 bg-gray-200 rounded-md" />
-      )}
-      <h2 className="font-semibold mt-2">{product.name}</h2>
-      <p>${product.price}</p>
+      <div className="overflow-hidden rounded-[18px] border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)]">
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={product.name}
+            className="w-full aspect-[3/4] object-cover"
+          />
+        ) : (
+          <div className="w-full aspect-[3/4]" />
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm md:text-base font-medium text-[color:var(--text-primary)] leading-tight">
+          {product.name}
+        </h2>
+        <p className="text-base font-semibold text-[color:var(--text-primary)]">${priceLabel}</p>
+      </div>
     </Link>
   );
 }
+
+

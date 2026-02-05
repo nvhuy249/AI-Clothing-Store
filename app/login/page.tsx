@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -39,8 +39,9 @@ export default function AuthPage() {
       if (!res.ok) throw new Error(data.error || 'Sign in failed');
       setMessage(`Signed in as ${data.user?.name || data.user?.email}`);
       router.push('/');
-    } catch (err: any) {
-      setError(err.message || 'Sign in failed');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Sign in failed';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -67,8 +68,9 @@ export default function AuthPage() {
       if (!res.ok) throw new Error(data.error || 'Sign up failed');
       setMessage(`Account created for ${data.user?.name || data.user?.email}`);
       router.push('/profile');
-    } catch (err: any) {
-      setError(err.message || 'Sign up failed');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Sign up failed';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -104,7 +106,7 @@ export default function AuthPage() {
 
             <form className="space-y-4" onSubmit={handleSignIn}>
               <div>
-                <label className="block text-sm mb-1 text-slate-200">Email</label>
+                <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Email</label>
                 <input
                   type="email"
                   required
@@ -115,17 +117,17 @@ export default function AuthPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm mb-1 text-slate-200">Password</label>
+                <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Password</label>
                 <input
                   type="password"
                   required
                   className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 focus:border-blue-500 focus:outline-none"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   value={signinPassword}
                   onChange={(e) => setSigninPassword(e.target.value)}
                 />
               </div>
-              <div className="flex items-center justify-between text-sm text-slate-300">
+              <div className="flex items-center justify-between text-sm text-[color:var(--text-muted)]">
                 <label className="inline-flex items-center gap-2">
                   <input type="checkbox" className="rounded border-slate-600 bg-slate-900" />
                   Remember me
@@ -145,7 +147,7 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={() => setMode('signup')}
-                  className="w-full py-3 rounded-lg border border-slate-700 hover:border-blue-400 text-slate-200"
+                  className="w-full py-3 rounded-lg border border-slate-700 hover:border-blue-400 text-[color:var(--text-primary)]"
                 >
                   Switch to Sign Up
                 </button>
@@ -171,7 +173,7 @@ export default function AuthPage() {
 
             <form className="space-y-4" onSubmit={handleSignUp}>
               <div>
-                <label className="block text-sm mb-1 text-slate-200">Name</label>
+                <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Name</label>
                 <input
                   type="text"
                   required
@@ -183,7 +185,7 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="block text-sm mb-1 text-slate-200">Email</label>
+                <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Email</label>
                 <input
                   type="email"
                   required
@@ -195,7 +197,7 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="block text-sm mb-1 text-slate-200">Password</label>
+                <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Password</label>
                 <input
                   type="password"
                   required
@@ -207,7 +209,7 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="block text-sm mb-1 text-slate-200">Phone (optional)</label>
+                <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Phone (optional)</label>
                 <input
                   type="tel"
                   className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 focus:border-emerald-500 focus:outline-none"
@@ -218,7 +220,7 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="block text-sm mb-1 text-slate-200">Address (optional)</label>
+                <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Address (optional)</label>
                 <textarea
                   rows={2}
                   className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 focus:border-emerald-500 focus:outline-none"
@@ -239,7 +241,7 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={() => setMode('signin')}
-                  className="w-full py-3 rounded-lg border border-slate-700 hover:border-emerald-400 text-slate-200"
+                  className="w-full py-3 rounded-lg border border-slate-700 hover:border-emerald-400 text-[color:var(--text-primary)]"
                 >
                   Switch to Sign In
                 </button>
@@ -253,7 +255,7 @@ export default function AuthPage() {
           <button
             onClick={() => setMode('signin')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-              isSignIn ? 'bg-blue-600' : 'bg-slate-800 text-slate-300'
+              isSignIn ? 'bg-blue-600' : 'bg-slate-800 text-[color:var(--text-muted)]'
             }`}
           >
             Sign In
@@ -261,7 +263,7 @@ export default function AuthPage() {
           <button
             onClick={() => setMode('signup')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-              !isSignIn ? 'bg-emerald-600' : 'bg-slate-800 text-slate-300'
+              !isSignIn ? 'bg-emerald-600' : 'bg-slate-800 text-[color:var(--text-muted)]'
             }`}
           >
             Sign Up
@@ -271,3 +273,5 @@ export default function AuthPage() {
     </div>
   );
 }
+
+

@@ -1,5 +1,4 @@
-import { Blob } from 'buffer';
-import postgres from 'postgres';
+﻿import postgres from 'postgres';
 import { fetchProductById } from './data';
 import {
   fetchImageAsBase64,
@@ -23,7 +22,7 @@ type VitonInput = {
   forceDc?: boolean;
 };
 
-async function persistProductImage(sourceUrl: string, productId: string, modelTag: string): Promise<string> {
+async function persistProductImage(sourceUrl: string, productId: string): Promise<string> {
   // If Supabase storage configured, upload and return stable URL; else return source.
   if (!hasSupabaseStorage()) return sourceUrl;
 
@@ -178,14 +177,14 @@ export async function dressProductWithViton(productId: string, baseModelUrl?: st
   // Belts: use Stability inpaint instead of VITON
   if (isBelt(product)) {
     const url = await generateStabilityImageForBase(product, humanUrl);
-    const finalUrl = await persistProductImage(url, productId, 'stability');
+    const finalUrl = await persistProductImage(url, productId);
     await upsertAiPhoto(productId, finalUrl);
     return finalUrl;
   }
 
   // VITON accepts URLs; only convert to data URI if needed.
   const clothInput = clothUrl.startsWith('http') ? clothUrl : `data:image/png;base64,${await resizeBase64ToPng(await fetchImageAsBase64(clothUrl), 768, 1024, 'contain')}`;
-  const humanInput = humanUrl.startsWith('http') ? humanUrl : `data:image/png;base64,${await resizeBase64ToPng(await fetchImageAsBase64(humanUrl), 768, 1024, 'contain')}`;
+  let humanInput = humanUrl.startsWith('http') ? humanUrl : `data:image/png;base64,${await resizeBase64ToPng(await fetchImageAsBase64(humanUrl), 768, 1024, 'contain')}`;
 
   const clothType = inferClothType(product);
   const fitNote =
@@ -218,7 +217,7 @@ export async function dressProductWithViton(productId: string, baseModelUrl?: st
     .filter(Boolean)
     .join(', ');
 
-  let lastError: any = null;
+  let lastError: unknown = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const outputUrl = await runReplicateViton({
@@ -227,7 +226,7 @@ export async function dressProductWithViton(productId: string, baseModelUrl?: st
         clothType,
         garmentDesc,
       });
-      const finalUrl = await persistProductImage(outputUrl, productId, 'viton');
+      const finalUrl = await persistProductImage(outputUrl, productId);
       await upsertAiPhoto(productId, finalUrl);
       return finalUrl;
     } catch (err) {
@@ -240,14 +239,15 @@ export async function dressProductWithViton(productId: string, baseModelUrl?: st
           ? altHuman
           : `data:image/png;base64,${await resizeBase64ToPng(await fetchImageAsBase64(altHuman), 768, 1024, 'contain')}`;
         // mutate for next attempt
-        (humanInput as any) = altHumanInput;
+        humanInput = altHumanInput;
         continue;
       }
       break;
     }
   }
 
-  throw lastError || new Error('VITON try-on failed');
+  if (lastError instanceof Error) throw lastError;
+  throw new Error('VITON try-on failed');
 }
 
 export { generateStabilityBaseModelImages };
@@ -312,6 +312,10 @@ export async function dressUserWithTryon(
     garmentDesc,
   });
   const finalUrl = await persistUserTryonImage(outputUrl, product.product_id, customerId);
-  await insertUserAiPhoto(product.product_id, customerId, finalUrl, 'viton-user');
-  return finalUrl;
-}
+    await insertUserAiPhoto(product.product_id, customerId, finalUrl, 'viton-user');
+    return finalUrl;
+  }
+
+
+
+

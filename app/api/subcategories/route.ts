@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { fetchSubCategoriesByCategory } from '../../lib/data';
 
 export async function GET(request: Request) {
@@ -17,3 +17,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch subcategories' }, { status: 500 });
   }
 }
+

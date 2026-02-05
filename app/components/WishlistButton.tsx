@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useWishlist } from '../hooks/useWishlist';
 
 interface Props {
@@ -12,11 +12,7 @@ export default function WishlistButton({ productId, authed }: Props) {
   const { isSaved, add, remove, loading } = useWishlist();
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isSaved(productId)) setStatus('saved');
-    else setStatus('idle');
-  }, [productId, isSaved]);
+  const saved = isSaved(productId);
 
   const handleToggle = async () => {
     if (!authed) {
@@ -27,7 +23,7 @@ export default function WishlistButton({ productId, authed }: Props) {
     setStatus('saving');
     setMessage(null);
     try {
-      if (isSaved(productId)) {
+      if (saved) {
         await remove(productId);
         setStatus('idle');
         setMessage('Removed from wishlist');
@@ -36,16 +32,17 @@ export default function WishlistButton({ productId, authed }: Props) {
         setStatus('saved');
         setMessage('Added to wishlist');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error');
-      setMessage(err.message || 'Could not update wishlist');
+      const message = err instanceof Error ? err.message : 'Could not update wishlist';
+      setMessage(message);
     }
   };
 
   const label =
     status === 'saving'
-      ? 'Saving…'
-      : isSaved(productId)
+      ? 'Saving...'
+      : saved
       ? 'Saved to Wishlist'
       : 'Save to Wishlist';
 
@@ -58,9 +55,9 @@ export default function WishlistButton({ productId, authed }: Props) {
         onClick={handleToggle}
         disabled={disabled}
         className={`w-full py-3 rounded-lg border ${
-          isSaved(productId)
+          saved
             ? 'border-emerald-500 text-emerald-200 bg-emerald-900/30'
-            : 'border-slate-700 text-slate-200 hover:border-emerald-400'
+            : 'border-slate-700 text-[color:var(--text-primary)] hover:border-emerald-400'
         } disabled:opacity-60`}
         title={authed ? 'Toggle wishlist' : 'Sign in to save'}
       >
@@ -78,3 +75,5 @@ export default function WishlistButton({ productId, authed }: Props) {
     </div>
   );
 }
+
+

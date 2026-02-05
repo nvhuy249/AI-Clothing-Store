@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useCart } from "../hooks/useCart";
@@ -64,9 +64,10 @@ export default function CheckoutPage() {
       }
       clear();
       setStatus("success");
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Order failed";
       setStatus("error");
-      setError(e.message || "Order failed");
+      setError(message);
     }
   };
 
@@ -75,7 +76,7 @@ export default function CheckoutPage() {
       <div className="pt-18 min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white px-4 py-12 items-center flex">
         <div className="max-w-3xl mx-auto space-y-4 text-center">
           <h1 className="text-3xl font-semibold text-emerald-300">Order placed!</h1>
-          <p className="text-slate-300">Thank you. A confirmation email would be sent in a real flow.</p>
+          <p className="text-[color:var(--text-muted)]">Thank you. A confirmation email would be sent in a real flow.</p>
           <button
             onClick={() => router.push("/shop")}
             className="px-6 py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold"
@@ -93,7 +94,7 @@ export default function CheckoutPage() {
         <div className="md:col-span-2 rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-4">
           <h1 className="text-2xl font-semibold">Checkout</h1>
           <div className="space-y-3">
-            <label className="block text-sm text-slate-300">
+            <label className="block text-sm text-[color:var(--text-muted)]">
               Full name
               <input
                 name="name"
@@ -103,7 +104,7 @@ export default function CheckoutPage() {
                 placeholder="Your name"
               />
             </label>
-            <label className="block text-sm text-slate-300">
+            <label className="block text-sm text-[color:var(--text-muted)]">
               Shipping address
               <textarea
                 name="address"
@@ -114,7 +115,7 @@ export default function CheckoutPage() {
                 placeholder="Street, city, country"
               />
             </label>
-            <label className="block text-sm text-slate-300">
+            <label className="block text-sm text-[color:var(--text-muted)]">
               Phone
               <input
                 name="phone"
@@ -124,7 +125,7 @@ export default function CheckoutPage() {
                 placeholder="Contact number"
               />
             </label>
-            <label className="block text-sm text-slate-300">
+            <label className="block text-sm text-[color:var(--text-muted)]">
               Note (optional)
               <textarea
                 name="note"
@@ -149,12 +150,12 @@ export default function CheckoutPage() {
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
           <h2 className="text-lg font-semibold">Order summary</h2>
           {items.length === 0 ? (
-            <p className="text-slate-400 text-sm">No items.</p>
+            <p className="text-[color:var(--text-muted)] text-sm">No items.</p>
           ) : (
             <div className="space-y-2">
               {items.map((i) => (
-                <div key={i.productId} className="flex justify-between text-sm text-slate-200">
-                  <span>{i.name} × {i.qty}</span>
+                <div key={i.productId} className="flex justify-between text-sm text-[color:var(--text-primary)]">
+                  <span>{i.name} Ã— {i.qty}</span>
                   <span>${(Number(i.price) * i.qty).toFixed(2)}</span>
                 </div>
               ))}
@@ -169,3 +170,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+

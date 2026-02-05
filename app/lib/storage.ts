@@ -1,4 +1,4 @@
-import { StorageClient } from '@supabase/storage-js';
+﻿import { StorageClient } from '@supabase/storage-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -55,3 +55,4 @@ export async function uploadBufferToSupabase(
   if (signErr) throw signErr;
   return signed.signedUrl;
 }
+

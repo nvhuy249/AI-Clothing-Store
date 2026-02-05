@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -26,8 +26,8 @@ export function useWishlist() {
     try {
       const res = await fetch("/api/wishlist", { method: "GET" });
       if (!res.ok) throw new Error();
-      const data = await res.json();
-      const productIds: string[] = (data.items || []).map((i: any) => i.product_id).filter(Boolean);
+      const data = (await res.json()) as { items?: Array<{ product_id?: string }> };
+      const productIds: string[] = (data.items || []).map((i) => i.product_id).filter(Boolean) as string[];
       setIds(productIds);
     } catch {
       setIds([]);
@@ -61,3 +61,4 @@ export function useWishlist() {
 
   return { ids, count, isSaved, add, remove, loading };
 }
+

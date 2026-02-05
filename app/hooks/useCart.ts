@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -35,11 +35,10 @@ function save(items: CartItem[]) {
 }
 
 export function useCart() {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => load());
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
-    setItems(load());
     if (typeof window !== "undefined" && "BroadcastChannel" in window) {
       const ch = new BroadcastChannel(CHANNEL_NAME);
       ch.onmessage = () => setItems(load());
@@ -88,3 +87,4 @@ function addToList(list: CartItem[], item: Omit<CartItem, "qty">): CartItem[] {
   }
   return [...list, { ...item, qty: 1 }];
 }
+

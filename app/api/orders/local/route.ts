@@ -16,7 +16,6 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const items = body.items as Array<{ productId: string; qty: number }>;
-    const shippingName = body.shippingName || null;
     const shippingAddress = body.shippingAddress || null;
     const phone = body.phone || null;
     const note = body.note || null;
@@ -56,8 +55,10 @@ export async function POST(req: Request) {
 
     await sql.end();
     return NextResponse.json({ ok: true, orderId });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Local checkout error', err);
-    return NextResponse.json({ error: err.message || 'Checkout failed' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Checkout failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

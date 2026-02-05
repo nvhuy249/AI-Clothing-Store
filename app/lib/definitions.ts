@@ -1,4 +1,4 @@
-
+﻿
 export interface Category {
   category_id: string;
   name: string;
@@ -118,3 +118,4 @@ export interface ChatbotLog {
   intent: string | null;
   timestamp: string;
 }
+
