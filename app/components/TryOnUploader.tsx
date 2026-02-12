@@ -8,12 +8,14 @@ type Props = {
   aiEnabled: boolean;
   authed: boolean;
   primaryGlowTarget?: "hero" | "tryon" | "none";
+  dailyCap?: number | null;
 };
 
 export default function TryOnUploader({
   productId,
   aiEnabled,
   authed,
+  dailyCap = null,
   primaryGlowTarget = "none",
 }: Props) {
   const [file, setFile] = useState<File | null>(null);
@@ -21,6 +23,12 @@ export default function TryOnUploader({
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "error" | "done">("idle");
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const getCsrf = () => {
+    if (typeof document === "undefined") return "";
+    const match = document.cookie.match(/csrfToken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  };
 
   useEffect(() => {
     return () => {
@@ -48,7 +56,11 @@ export default function TryOnUploader({
       const fd = new FormData();
       fd.append("file", file);
       fd.append("productId", productId);
-      const res = await fetch("/api/ai/tryon/user", { method: "POST", body: fd });
+      const res = await fetch("/api/ai/tryon/user", {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrf() },
+        body: fd,
+      });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setResultUrl(data.url || null);
@@ -76,6 +88,7 @@ export default function TryOnUploader({
             onClick={onPick}
             disabled={disabled}
             className="btn btn-secondary w-full py-2 disabled:opacity-50 glow-none"
+            aria-label="Choose a photo for try-on"
           >
             Choose photo
           </button>
@@ -84,6 +97,7 @@ export default function TryOnUploader({
             onClick={onSave}
             disabled={disabled || !file}
             className={`btn btn-primary w-full py-2 disabled:opacity-50 ${tryOnGlow}`}
+            aria-label="Upload and generate try-on"
           >
             {status === "uploading" ? "Saving..." : "Save & generate"}
           </button>
@@ -99,8 +113,13 @@ export default function TryOnUploader({
             Tip: Use a clear, well-lit full-body photo, neutral pose, plain background, no heavy shadows or obstructions. Avoid group photos, cropped heads, or extreme angles for best try-on results.
           </p>
           <p className="text-xs text-[color:var(--text-muted)] leading-5">
-            Your photo is private. Used only for preview. Deleted automatically.
+            Privacy: your upload is used only to render this try-on and stored privately; delete anytime from your profile.
           </p>
+          {dailyCap && (
+            <p className="text-[11px] text-[color:var(--text-muted)]">
+              Daily AI render cap: {dailyCap} per store (resets daily).
+            </p>
+          )}
         </div>
 
         <div className="rounded-lg bg-slate-950 border border-slate-800 min-h-[220px] flex items-center justify-center overflow-hidden">

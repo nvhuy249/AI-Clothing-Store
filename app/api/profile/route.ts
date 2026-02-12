@@ -1,15 +1,14 @@
-﻿import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import postgres from 'postgres';
-
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../lib/auth';
+import { getDb } from '../../lib/db';
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const email = cookieStore.get('userEmail')?.value;
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
   if (!email) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const rows = await sql`
+  const rows = await getDb()`
     SELECT customer_id, name, email, phone, address, profile_photo_url, created_at
     FROM customers
     WHERE email = ${email}
@@ -24,14 +23,14 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const cookieStore = await cookies();
-  const email = cookieStore.get('userEmail')?.value;
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
   if (!email) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
   const body = await req.json();
   const { name, phone, address, profile_photo_url } = body || {};
 
-  const updated = await sql`
+  const updated = await getDb()`
     UPDATE customers
     SET
       name = COALESCE(${name}, name),
@@ -48,4 +47,3 @@ export async function PUT(req: Request) {
 
   return NextResponse.json({ user: updated[0] });
 }
-

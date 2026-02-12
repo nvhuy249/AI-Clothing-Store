@@ -1,8 +1,10 @@
-﻿import Link from 'next/link';
-import { cookies } from 'next/headers';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { fetchCustomerByEmail } from '../lib/data';
 import WishlistCard from '../components/WishlistCard';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,32 +15,32 @@ type WishlistItem = {
   price: number;
 };
 
-
-async function fetchWishlist(email: string): Promise<WishlistItem[]> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/wishlist`, {
+async function fetchWishlist(cookieHeader: string | undefined) {
+  const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const res = await fetch(`${base}/api/wishlist`, {
     next: { revalidate: 0 },
-    headers: {
-      cookie: `userEmail=${email}`,
-    },
+    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
   });
   if (!res.ok) return [];
   const data = await res.json();
-  return data.items ?? [];
+  return (data.items ?? []) as WishlistItem[];
 }
 
 export default async function WishlistPage() {
-  const cookieStore = await cookies();
-  const email = cookieStore.get('userEmail')?.value;
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
   if (!email) {
     redirect('/login');
   }
 
+  const cookieStore = await cookies();
+  const serialized = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join('; ');
   const user = await fetchCustomerByEmail(email!);
   if (!user) {
     redirect('/login');
   }
 
-  const items = await fetchWishlist(email!);
+  const items = await fetchWishlist(serialized || undefined);
 
   return (
     <div className="pt-18 min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white px-4 py-12">
@@ -71,6 +73,3 @@ export default async function WishlistPage() {
     </div>
   );
 }
-
-
-

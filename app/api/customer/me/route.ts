@@ -1,10 +1,11 @@
-﻿import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../../lib/auth';
 import { fetchCustomerByEmail } from '../../../lib/data';
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const email = cookieStore.get('userEmail')?.value;
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
   if (!email) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
   const customer = await fetchCustomerByEmail(email);

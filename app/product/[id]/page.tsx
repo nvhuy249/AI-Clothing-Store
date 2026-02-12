@@ -1,12 +1,13 @@
-﻿/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @next/next/no-img-element */
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { fetchProductById, fetchProductFeedback } from "../../lib/data";
 import WishlistButton from "../../components/WishlistButton";
 import ProductGallery from "../../components/ProductGallery";
 import TryOnUploader from "../../components/TryOnUploader";
 import AddToCartButton from "../../components/AddToCartButton";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +32,13 @@ export default async function ProductPage({ params }: Props) {
     ...((product?.ai_photos as string[] | null) ?? []),
   ];
 
-  const cookieStore = await cookies();
-  const authed = !!cookieStore.get("userEmail");
+  const session = await getServerSession(authOptions);
+  const authed = !!session?.user?.email;
   const aiEnabled = process.env.AI_IMAGES_ENABLED === "true";
+  const dailyCap =
+    process.env.NEXT_PUBLIC_AI_IMAGES_DAILY_CAP
+      ? Number(process.env.NEXT_PUBLIC_AI_IMAGES_DAILY_CAP)
+      : null;
   const primaryGlowTarget: "hero" | "tryon" | "none" = "tryon";
 
   return (
@@ -91,6 +96,7 @@ export default async function ProductPage({ params }: Props) {
             productId={product.product_id}
             aiEnabled={aiEnabled}
             authed={authed}
+            dailyCap={dailyCap}
             primaryGlowTarget={primaryGlowTarget}
           />
         </div>

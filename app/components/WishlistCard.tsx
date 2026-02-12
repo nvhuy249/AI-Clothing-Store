@@ -18,13 +18,19 @@ export default function WishlistCard({ productId, name, price, photos }: Props) 
   const [removed, setRemoved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+const getCsrf = () => {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/csrfToken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+};
+
   const handleRemove = async () => {
     setRemoving(true);
     setError(null);
     try {
       const res = await fetch('/api/wishlist', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrf() },
         body: JSON.stringify({ productId }),
       });
       if (!res.ok) {
@@ -68,5 +74,4 @@ export default function WishlistCard({ productId, name, price, photos }: Props) 
     </div>
   );
 }
-
 

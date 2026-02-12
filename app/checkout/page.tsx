@@ -22,7 +22,9 @@ export default function CheckoutPage() {
     // Prefill from customer profile
     (async () => {
       try {
-       const res = await fetch("/api/customer/me");
+      const res = await fetch("/api/customer/me", {
+        headers: { "x-csrf-token": getCsrf() },
+      });
        if (!res.ok) return;
        const data = await res.json();
        setForm((f) => ({
@@ -49,7 +51,7 @@ export default function CheckoutPage() {
     try {
       const res = await fetch("/api/orders/local", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrf() },
         body: JSON.stringify({
          items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
           shippingName: form.name,
@@ -169,6 +171,12 @@ export default function CheckoutPage() {
       </div>
     </div>
   );
+}
+
+function getCsrf() {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(/csrfToken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
 }
 
 

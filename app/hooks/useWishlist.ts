@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 
 const CHANNEL_NAME = "wishlist-channel";
 
+function getCsrf() {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(/csrfToken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
 export function useWishlist() {
   const [ids, setIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,7 +30,7 @@ export function useWishlist() {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch("/api/wishlist", { method: "GET" });
+      const res = await fetch("/api/wishlist", { method: "GET", headers: { "x-csrf-token": getCsrf() } });
       if (!res.ok) throw new Error();
       const data = (await res.json()) as { items?: Array<{ product_id?: string }> };
       const productIds: string[] = (data.items || []).map((i) => i.product_id).filter(Boolean) as string[];
@@ -39,7 +45,7 @@ export function useWishlist() {
   const add = async (productId: string) => {
     await fetch("/api/wishlist", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-csrf-token": getCsrf() },
       body: JSON.stringify({ productId }),
     });
     await load();
@@ -49,7 +55,7 @@ export function useWishlist() {
   const remove = async (productId: string) => {
     await fetch("/api/wishlist", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-csrf-token": getCsrf() },
       body: JSON.stringify({ productId }),
     });
     await load();

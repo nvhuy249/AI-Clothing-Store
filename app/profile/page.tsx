@@ -1,18 +1,18 @@
-﻿import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Settings } from 'lucide-react';
 import { fetchCustomerByEmail, fetchOrdersForCustomer, fetchUserTryOnGallery } from '../lib/data';
+import TryOnGallery from '../components/TryOnGallery';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 const formatDate = (d: string) => new Date(d).toLocaleDateString();
 const formatMoney = (n: number) => `$${Number(n).toFixed(2)}`;
 
-import TryOnGallery from '../components/TryOnGallery';
-
 export default async function ProfilePage() {
-  const cookieStore = await cookies();
-  const email = cookieStore.get('userEmail')?.value;
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
   if (!email) {
     redirect('/login');
   }
@@ -60,7 +60,7 @@ export default async function ProfilePage() {
               </div>
               <div>
                 <dt className="text-[color:var(--text-muted)]">Phone</dt>
-                <dd className="text-[color:var(--text-primary)]">{customer.phone || 'â€”'}</dd>
+                <dd className="text-[color:var(--text-primary)]">{customer.phone || '—'}</dd>
               </div>
               <div>
                 <dt className="text-[color:var(--text-muted)]">Member since</dt>
@@ -68,7 +68,7 @@ export default async function ProfilePage() {
               </div>
               <div className="sm:col-span-2">
                 <dt className="text-[color:var(--text-muted)]">Address</dt>
-                <dd className="text-[color:var(--text-primary)] whitespace-pre-wrap">{customer.address || 'â€”'}</dd>
+                <dd className="text-[color:var(--text-primary)] whitespace-pre-wrap">{customer.address || '—'}</dd>
               </div>
             </dl>
           </div>
@@ -141,5 +141,4 @@ export default async function ProfilePage() {
     </div>
   );
 }
-
 

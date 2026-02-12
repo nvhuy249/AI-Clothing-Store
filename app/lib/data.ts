@@ -1,12 +1,13 @@
-﻿import postgres, { Sql } from 'postgres';
+﻿import { Sql } from 'postgres';
 import {
   Brand,
   Category,
   SubCategory,
 } from './definitions';
+import { getDb } from './db';
 
 // Postgres client
-const sql: Sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql: Sql = getDb();
 
 // Pagination settings
 const ITEMS_PER_PAGE = 12;

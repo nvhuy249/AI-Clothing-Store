@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 
 type Mode = 'signin' | 'signup';
 
@@ -30,14 +31,13 @@ export default function AuthPage() {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: signinEmail, password: signinPassword }),
+      const res = await signIn('credentials', {
+        email: signinEmail,
+        password: signinPassword,
+        redirect: false,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Sign in failed');
-      setMessage(`Signed in as ${data.user?.name || data.user?.email}`);
+      if (res?.error) throw new Error(res.error);
+      setMessage(`Signed in as ${signinEmail}`);
       router.push('/');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sign in failed';
@@ -67,6 +67,12 @@ export default function AuthPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Sign up failed');
       setMessage(`Account created for ${data.user?.name || data.user?.email}`);
+      // auto sign-in after sign-up for smoother UX
+      await signIn('credentials', {
+        email: signupEmail,
+        password: signupPassword,
+        redirect: false,
+      });
       router.push('/profile');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sign up failed';
@@ -122,7 +128,7 @@ export default function AuthPage() {
                   type="password"
                   required
                   className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 focus:border-blue-500 focus:outline-none"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="•••••••••"
                   value={signinPassword}
                   onChange={(e) => setSigninPassword(e.target.value)}
                 />
@@ -144,6 +150,22 @@ export default function AuthPage() {
                 >
                   {loading && isSignIn ? 'Signing in...' : 'Sign In'}
                 </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => signIn('github')}
+                    className="w-full py-3 rounded-lg border border-slate-700 hover:border-blue-400 text-[color:var(--text-primary)]"
+                  >
+                    GitHub
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => signIn('google')}
+                    className="w-full py-3 rounded-lg border border-slate-700 hover:border-blue-400 text-[color:var(--text-primary)]"
+                  >
+                    Google
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={() => setMode('signup')}
@@ -273,5 +295,4 @@ export default function AuthPage() {
     </div>
   );
 }
-
 
