@@ -264,9 +264,9 @@ function NavbarInner() {
   };
 
   const navLinks = [
-    { href: "/women", label: "Women" },
-    { href: "/men", label: "Men" },
-    { href: "/accessories", label: "Accessories" },
+    { href: "/shop?categoryName=Women", label: "Women" },
+    { href: "/shop?categoryName=Men", label: "Men" },
+    { href: "/shop?categoryName=Accessories", label: "Accessories" },
   ];
 
   const navLinkClass =

@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { fetchCustomerByEmail } from '../lib/data';
 import WishlistCard from '../components/WishlistCard';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../lib/auth';
+import { getDb } from '../lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,15 +15,14 @@ type WishlistItem = {
   price: number;
 };
 
-async function fetchWishlist(cookieHeader: string | undefined) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const res = await fetch(`${base}/api/wishlist`, {
-    next: { revalidate: 0 },
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.items ?? []) as WishlistItem[];
+async function fetchWishlist(customerId: string) {
+  return getDb()<WishlistItem[]>`
+    SELECT w.product_id, p.name, p.photos, p.price
+    FROM wishlist w
+    JOIN products p ON p.product_id = w.product_id
+    WHERE w.customer_id = ${customerId}
+    ORDER BY w.created_at DESC
+  `;
 }
 
 export default async function WishlistPage() {
@@ -33,14 +32,12 @@ export default async function WishlistPage() {
     redirect('/login');
   }
 
-  const cookieStore = await cookies();
-  const serialized = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join('; ');
   const user = await fetchCustomerByEmail(email!);
   if (!user) {
     redirect('/login');
   }
 
-  const items = await fetchWishlist(serialized || undefined);
+  const items = await fetchWishlist(user.customer_id);
 
   return (
     <div className="pt-18 min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white px-4 py-12">

@@ -11,7 +11,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const params = await searchParams;
 
   const query = params.query || null;
-  const categoryId = params.category || null;
+  const requestedCategoryName = params.categoryName || null;
   const subCategoryId = params.subcategory || null;
   const brandId = params.brand || null;
   const colour = params.colour || null;
@@ -22,6 +22,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const page = params.page ? Number(params.page) : 1;
 
   const filterOptions = await fetchFilterOptions();
+  const categoryId =
+    params.category ||
+    (requestedCategoryName
+      ? filterOptions.categories.find(
+          (category) => category.name.toLowerCase() === requestedCategoryName.toLowerCase(),
+        )?.category_id || null
+      : null);
   const subCategories = categoryId ? await fetchSubCategoriesByCategory(categoryId) : [];
 
   const products = await fetchProductsForClientSearch(
