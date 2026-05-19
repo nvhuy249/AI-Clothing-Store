@@ -13,9 +13,9 @@ type OrderEmailInput = {
   shippingAddress: string | null;
 };
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const sendgridApiKey = process.env.SENDGRID_API_KEY;
-const fromEmail = process.env.ORDER_EMAIL_FROM || "NeuroFit <orders@neurofit.test>";
+const resendApiKey = cleanEnv(process.env.RESEND_API_KEY);
+const sendgridApiKey = cleanEnv(process.env.SENDGRID_API_KEY);
+const fromEmail = cleanEnv(process.env.ORDER_EMAIL_FROM) || "NeuroFit <orders@neurofit.test>";
 
 export async function sendOrderConfirmationEmail(input: OrderEmailInput) {
   if (!resendApiKey && !sendgridApiKey) {
@@ -46,6 +46,7 @@ export async function sendOrderConfirmationEmail(input: OrderEmailInput) {
     if (!response.ok) {
       throw new Error(`Resend email failed: ${await response.text()}`);
     }
+    console.info(`Order email sent via Resend to ${input.to}.`);
     return response.json();
   }
 
@@ -69,7 +70,14 @@ export async function sendOrderConfirmationEmail(input: OrderEmailInput) {
   if (!response.ok) {
     throw new Error(`SendGrid email failed: ${await response.text()}`);
   }
+  console.info(`Order email sent via SendGrid to ${input.to}.`);
   return { ok: true };
+}
+
+function cleanEnv(value: string | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === '""' || trimmed === "''") return undefined;
+  return trimmed.replace(/^["']|["']$/g, "");
 }
 
 function renderOrderText(input: OrderEmailInput) {

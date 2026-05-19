@@ -59,9 +59,10 @@ export async function proxy(req: NextRequest) {
   }
 
   const isAuthRoute = req.nextUrl.pathname.startsWith("/api/auth");
+  const isWebhookRoute = req.nextUrl.pathname.startsWith("/api/webhooks/");
 
   // Enforce same-origin + token on state-changing requests to mitigate CSRF (except NextAuth which has its own CSRF)
-  if (CSRF_METHODS.includes(req.method) && !isAuthRoute) {
+  if (CSRF_METHODS.includes(req.method) && !isAuthRoute && !isWebhookRoute) {
     const origin = req.headers.get("origin");
     const host = req.headers.get("host");
     if (origin && host && !origin.includes(host)) {

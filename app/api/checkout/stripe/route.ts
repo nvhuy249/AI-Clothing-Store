@@ -40,8 +40,9 @@ export async function POST(req: Request) {
     }
 
     const { items, shippingName, shippingAddress, phone, note } = parse.data;
+    const db = getDb();
     const productIds = items.map((item) => item.productId);
-    const products = await getDb()<Array<{ product_id: string; name: string; price: number; stock_quantity: number }>>`
+    const products = await db<Array<{ product_id: string; name: string; price: number; stock_quantity: number }>>`
       SELECT product_id, name, price, COALESCE(stock_quantity, 0) AS stock_quantity
       FROM products
       WHERE product_id = ANY(${productIds})
@@ -60,6 +61,49 @@ export async function POST(req: Request) {
     }
 
     const origin = process.env.NEXT_PUBLIC_APP_URL || req.headers.get("origin") || new URL(req.url).origin;
+    await db`
+      CREATE TABLE IF NOT EXISTS pending_checkouts (
+        pending_checkout_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+        stripe_session_id TEXT UNIQUE,
+        customer_id UUID REFERENCES users(customer_id) ON DELETE CASCADE,
+        customer_email TEXT NOT NULL,
+        customer_name TEXT NOT NULL,
+        items JSONB NOT NULL,
+        shipping_name TEXT,
+        shipping_address TEXT,
+        phone TEXT,
+        note TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        order_id UUID REFERENCES orders(order_id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP
+      )
+    `;
+    const pendingRows = await db<Array<{ pending_checkout_id: string }>>`
+      INSERT INTO pending_checkouts (
+        customer_id,
+        customer_email,
+        customer_name,
+        items,
+        shipping_name,
+        shipping_address,
+        phone,
+        note
+      )
+      VALUES (
+        ${customer.customer_id},
+        ${email},
+        ${customer.name},
+        ${JSON.stringify(items)}::jsonb,
+        ${shippingName || customer.name || null},
+        ${shippingAddress || customer.address || null},
+        ${phone || customer.phone || null},
+        ${note || null}
+      )
+      RETURNING pending_checkout_id
+    `;
+    const pendingCheckoutId = pendingRows[0].pending_checkout_id;
+
     const body = new URLSearchParams();
     body.set("mode", "payment");
     body.set("customer_email", email);
@@ -68,6 +112,7 @@ export async function POST(req: Request) {
     body.set("billing_address_collection", "auto");
     body.set("shipping_address_collection[allowed_countries][0]", "AU");
     body.set("shipping_address_collection[allowed_countries][1]", "US");
+    body.set("metadata[pending_checkout_id]", pendingCheckoutId);
     body.set("metadata[customer_id]", customer.customer_id);
     body.set("metadata[shipping_name]", shippingName || customer.name || "");
     body.set("metadata[shipping_address]", shippingAddress || customer.address || "");
@@ -97,6 +142,12 @@ export async function POST(req: Request) {
     if (!response.ok) {
       return NextResponse.json({ error: data?.error?.message || "Stripe Checkout failed" }, { status: 502 });
     }
+
+    await db`
+      UPDATE pending_checkouts
+      SET stripe_session_id = ${data.id}
+      WHERE pending_checkout_id = ${pendingCheckoutId}
+    `;
 
     return NextResponse.json({ url: data.url });
   } catch (error: unknown) {

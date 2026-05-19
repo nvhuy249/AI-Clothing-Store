@@ -35,16 +35,23 @@ function save(items: CartItem[]) {
 }
 
 export function useCart() {
-  const [items, setItems] = useState<CartItem[]>(() => load());
+  const [items, setItems] = useState<CartItem[]>([]);
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
+    const frame = requestAnimationFrame(() => setItems(load()));
+
     if (typeof window !== "undefined" && "BroadcastChannel" in window) {
       const ch = new BroadcastChannel(CHANNEL_NAME);
       ch.onmessage = () => setItems(load());
       channelRef.current = ch;
-      return () => ch.close();
+      return () => {
+        cancelAnimationFrame(frame);
+        ch.close();
+      };
     }
+
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const persist = (next: CartItem[]) => {
