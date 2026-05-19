@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Menu, X, Heart, User, ShoppingBag, Search } from "lucide-react";
@@ -140,6 +140,35 @@ function NavbarSearch({
 }
 
 export default function Navbar() {
+  return (
+    <Suspense fallback={<NavbarShell />}>
+      <NavbarInner />
+    </Suspense>
+  );
+}
+
+function NavbarShell() {
+  return (
+    <nav className="fixed w-full top-0 left-0 z-50 border-b border-[color:var(--border-subtle)] bg-[rgba(6,11,20,0.78)] backdrop-blur-md">
+      <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
+        <div className="hidden md:flex space-x-8">
+          <span className="text-sm font-medium text-[color:var(--text-primary)]">Women</span>
+          <span className="text-sm font-medium text-[color:var(--text-primary)]">Men</span>
+          <span className="text-sm font-medium text-[color:var(--text-primary)]">Accessories</span>
+        </div>
+        <Link
+          href="/"
+          className="absolute left-1/2 -translate-x-1/2 text-2xl font-extrabold tracking-tight text-[color:var(--text-primary)]"
+        >
+          NEURO<span className="text-[color:var(--accent-blue)]">FIT</span>
+        </Link>
+        <div className="h-9 w-32" />
+      </div>
+    </nav>
+  );
+}
+
+function NavbarInner() {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [cartOpen, setCartOpen] = useState<boolean>(false);
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
