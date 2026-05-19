@@ -15,6 +15,7 @@ export default function CheckoutPage() {
   const { items, total, clear } = useCart();
   const [form, setForm] = useState<FormState>({ name: "", address: "", phone: "", note: "" });
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [stripeStatus, setStripeStatus] = useState<"idle" | "submitting">("idle");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -70,6 +71,34 @@ export default function CheckoutPage() {
       const message = e instanceof Error ? e.message : "Order failed";
       setStatus("error");
       setError(message);
+    }
+  };
+
+  const startStripeCheckout = async () => {
+    if (items.length === 0) return;
+    setStripeStatus("submitting");
+    setError(null);
+    try {
+      const res = await fetch("/api/checkout/stripe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrf() },
+        body: JSON.stringify({
+          items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
+          shippingName: form.name,
+          shippingAddress: form.address,
+          phone: form.phone,
+          note: form.note,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Stripe checkout failed");
+      }
+      window.location.href = data.url;
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Stripe checkout failed";
+      setError(message);
+      setStripeStatus("idle");
     }
   };
 
@@ -140,13 +169,22 @@ export default function CheckoutPage() {
             </label>
           </div>
           {error && <p className="text-sm text-rose-400">{error}</p>}
-          <button
-            onClick={placeOrder}
-            disabled={status === "submitting" || items.length === 0}
-            className="mt-2 px-6 py-3 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-60 font-semibold"
-          >
-            {status === "submitting" ? "Placing order..." : "Place order"}
-          </button>
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={startStripeCheckout}
+              disabled={stripeStatus === "submitting" || status === "submitting" || items.length === 0}
+              className="px-6 py-3 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 font-semibold"
+            >
+              {stripeStatus === "submitting" ? "Opening Stripe..." : "Pay with Stripe test"}
+            </button>
+            <button
+              onClick={placeOrder}
+              disabled={status === "submitting" || stripeStatus === "submitting" || items.length === 0}
+              className="px-6 py-3 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-60 font-semibold"
+            >
+              {status === "submitting" ? "Placing order..." : "Place local test order"}
+            </button>
+          </div>
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">

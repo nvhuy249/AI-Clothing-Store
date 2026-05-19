@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const formatDate = (d: string) => new Date(d).toLocaleDateString();
 const formatMoney = (n: number) => `$${Number(n).toFixed(2)}`;
+const TRY_ON_HISTORY_LIMIT = 12;
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -30,7 +31,7 @@ export default async function ProfilePage() {
   }
 
   const orders = await fetchOrdersForCustomer(customer.customer_id);
-  const tryOns = await fetchUserTryOnGallery(customer.customer_id);
+  const tryOns = await fetchUserTryOnGallery(customer.customer_id, TRY_ON_HISTORY_LIMIT);
 
   return (
     <div className="pt-18 min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white px-4 py-12">
@@ -136,9 +137,8 @@ export default async function ProfilePage() {
           )}
         </section>
 
-        <TryOnGallery items={tryOns} />
+        <TryOnGallery items={tryOns} limit={TRY_ON_HISTORY_LIMIT} />
       </div>
     </div>
   );
 }
-

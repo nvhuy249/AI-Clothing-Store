@@ -7,8 +7,9 @@ import {
   generateStabilityImageForBase,
 } from '../../../lib/ai';
 import { fetchProductById } from '../../../lib/data';
+import { postgresOptions } from '../../../lib/db';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, postgresOptions);
 
 export async function POST(req: Request) {
   try {

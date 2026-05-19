@@ -1,10 +1,12 @@
-﻿import { Sql } from 'postgres';
+import { Sql } from 'postgres';
 import {
   Brand,
   Category,
+  ProductWithRelations,
   SubCategory,
 } from './definitions';
 import { getDb } from './db';
+import { ensureUsersTableName } from './users';
 
 // Postgres client
 const sql: Sql = getDb();
@@ -130,7 +132,7 @@ export async function fetchFilteredProductsPage(
   const totalPages = Math.ceil(countRows[0].count / ITEMS_PER_PAGE);
 
   // PRODUCT query
-  const products = await sql`
+  const products = await sql<ProductWithRelations[]>`
     SELECT
       product.product_id,
       product.name,
@@ -166,6 +168,63 @@ export async function fetchFilteredProductsPage(
   `;
 
   return { products, totalPages };
+}
+
+export async function fetchProductsForClientSearch(
+  categoryId: string | null,
+  subCategoryId: string | null,
+  brandId: string | null,
+  colour: string | null,
+  size: string | null,
+  minPrice: number | null,
+  maxPrice: number | null,
+  sort: string | null,
+): Promise<ProductWithRelations[]> {
+  let sortClause;
+  if (sort === "price_asc") sortClause = sql`product.price ASC`;
+  else if (sort === "price_desc") sortClause = sql`product.price DESC`;
+  else if (sort === "oldest") sortClause = sql`product.created_at ASC`;
+  else sortClause = sql`product.created_at DESC`;
+
+  return sql<ProductWithRelations[]>`
+    SELECT
+      product.product_id,
+      product.name,
+      product.description,
+      product.price,
+      product.category_id,
+      product.sub_category_id,
+      product.brand_id,
+      product.colour,
+      product.size,
+      product.created_at,
+      product.photos,
+      b.name AS brand_name,
+      c.name AS category_name,
+      sc.name AS subcategory_name,
+      ai.image_url AS ai_photo
+    FROM products AS product
+    LEFT JOIN brands b ON b.brand_id = product.brand_id
+    LEFT JOIN categories c ON c.category_id = product.category_id
+    LEFT JOIN sub_categories sc ON sc.sub_category_id = product.sub_category_id
+    LEFT JOIN LATERAL (
+      SELECT image_url
+      FROM ai_generated_photos
+      WHERE product_id = product.product_id AND customer_id IS NULL
+      ORDER BY created_at DESC
+      LIMIT 1
+    ) ai ON TRUE
+    WHERE
+      (${categoryId ? sql`product.category_id = ${categoryId}` : sql`TRUE`})
+      AND (${subCategoryId ? sql`product.sub_category_id = ${subCategoryId}` : sql`TRUE`})
+      AND (${brandId ? sql`product.brand_id = ${brandId}` : sql`TRUE`})
+      AND (${colour ? sql`product.colour ILIKE ${"%" + colour + "%"}` : sql`TRUE`})
+      AND (${size ? sql`product.size ILIKE ${"%" + size + "%"}` : sql`TRUE`})
+      AND (${minPrice !== null ? sql`product.price >= ${minPrice}` : sql`TRUE`})
+      AND (${maxPrice !== null ? sql`product.price <= ${maxPrice}` : sql`TRUE`})
+    ORDER BY ${sortClause}
+    LIMIT 500
+  `;
 }
 
 export async function fetchFilterOptions() {
@@ -302,9 +361,10 @@ export type OrderWithItems = {
 };
 
 export async function fetchCustomerByEmail(email: string): Promise<CustomerProfile | null> {
+  await ensureUsersTableName();
   const rows = await sql<CustomerProfile[]>`
     SELECT customer_id, name, email, phone, address, profile_photo_url, created_at
-    FROM customers
+    FROM users
     WHERE email = ${email}
     LIMIT 1
   `;
@@ -420,13 +480,13 @@ export async function fetchProductFeedback(productId: string): Promise<ProductFe
   return rows;
 }
 
-export async function fetchUserTryOnGallery(customerId: string): Promise<UserTryOn[]> {
+export async function fetchUserTryOnGallery(customerId: string, limit = 12): Promise<UserTryOn[]> {
   const rows = await sql<UserTryOn[]>`
     SELECT photo_id, image_url, product_id, created_at
     FROM ai_generated_photos
     WHERE customer_id = ${customerId}
     ORDER BY created_at DESC
-    LIMIT 50
+    LIMIT ${limit}
   `;
   return rows;
 }

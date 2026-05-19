@@ -1,13 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { fetchProductById, fetchProductFeedback } from "../../lib/data";
+import { fetchCustomerByEmail, fetchProductById, fetchProductFeedback } from "../../lib/data";
 import WishlistButton from "../../components/WishlistButton";
 import ProductGallery from "../../components/ProductGallery";
 import TryOnUploader from "../../components/TryOnUploader";
 import AddToCartButton from "../../components/AddToCartButton";
+import ProductReviews, { RatingStars } from "../../components/ProductReviews";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
+import { fetchCustomerReview, fetchProductReviews, fetchReviewSummary } from "../../lib/reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,10 @@ export default async function ProductPage({ params }: Props) {
   if (!product) return notFound();
 
   const feedback = await fetchProductFeedback(product.product_id);
+  const [reviewSummary, reviews] = await Promise.all([
+    fetchReviewSummary(product.product_id),
+    fetchProductReviews(product.product_id),
+  ]);
   const allPhotos = [
     ...((product?.photos as string[] | null) ?? []),
     ...((product?.ai_photos as string[] | null) ?? []),
@@ -34,6 +40,8 @@ export default async function ProductPage({ params }: Props) {
 
   const session = await getServerSession(authOptions);
   const authed = !!session?.user?.email;
+  const customer = session?.user?.email ? await fetchCustomerByEmail(session.user.email) : null;
+  const myReview = customer ? await fetchCustomerReview(product.product_id, customer.customer_id) : null;
   const aiEnabled = process.env.AI_IMAGES_ENABLED === "true";
   const dailyCap =
     process.env.NEXT_PUBLIC_AI_IMAGES_DAILY_CAP
@@ -64,9 +72,11 @@ export default async function ProductPage({ params }: Props) {
             <p>Colour: {product.colour || "—"}</p>
             <p>Size: {product.size || "—"}</p>
             <p>Description: {product.description || "No description provided."}</p>
-            <div className="flex items-center gap-2 text-amber-400">
-              <span>★★★★☆</span>
-              <span className="text-[color:var(--text-muted)] text-xs">4.0 (placeholder)</span>
+            <div className="flex items-center gap-2">
+              <RatingStars rating={reviewSummary.averageRating ?? 0} />
+              <a href="#reviews" className="text-xs text-[color:var(--text-muted)] hover:text-[color:var(--accent-blue)]">
+                {reviewSummary.averageRating ? reviewSummary.averageRating.toFixed(1) : "No ratings yet"} ({reviewSummary.reviewCount})
+              </a>
             </div>
           </div>
 
@@ -116,6 +126,14 @@ export default async function ProductPage({ params }: Props) {
           ))}
         </div>
       </div>
+
+      <ProductReviews
+        productId={product.product_id}
+        authed={authed}
+        reviews={reviews}
+        summary={reviewSummary}
+        myReview={myReview}
+      />
 
       {/* Feedback */}
       <div className="max-w-6xl mx-auto mt-12">

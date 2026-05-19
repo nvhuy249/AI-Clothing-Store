@@ -2,17 +2,158 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Menu, X, Heart, User, ShoppingBag, Search } from "lucide-react";
 import { useCart } from "../hooks/useCart";
 import { useWishlist } from "../hooks/useWishlist";
 
+type NavbarSearchProps = {
+  open: boolean;
+  value: string;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  suggestions: SearchSuggestion[];
+  loadingSuggestions: boolean;
+  compact?: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  onChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSuggestionClick: () => void;
+};
+
+type SearchSuggestion = {
+  product_id: string;
+  name: string;
+  price: number;
+  photos: string[] | null;
+  brand_name: string | null;
+  category_name: string | null;
+  colour: string | null;
+};
+
+function NavbarSearch({
+  open,
+  value,
+  inputRef,
+  suggestions,
+  loadingSuggestions,
+  compact = false,
+  onOpen,
+  onClose,
+  onChange,
+  onSubmit,
+  onSuggestionClick,
+}: NavbarSearchProps) {
+  const showDropdown = open && value.trim().length >= 2;
+
+  return (
+    <div className="relative">
+      <form
+        onSubmit={onSubmit}
+        className={`relative flex h-9 items-center justify-end overflow-hidden rounded-full border transition-all duration-300 ease-out ${
+          open
+            ? `${compact ? "w-56" : "w-72"} border-[color:var(--border-soft)] bg-[color:var(--bg-panel)] pl-3 pr-9`
+            : "w-9 border-transparent bg-transparent"
+        }`}
+      >
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") onClose();
+          }}
+          tabIndex={open ? 0 : -1}
+          aria-hidden={!open}
+          placeholder="Search products"
+          className={`h-full min-w-0 flex-1 border-0 bg-transparent text-sm text-[color:var(--text-primary)] outline-none ring-0 placeholder:text-[color:var(--text-muted)] focus:border-0 focus:outline-none focus:ring-0 transition-opacity duration-200 ${
+            open ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        />
+        <button
+          type="button"
+          aria-label={open ? "Focus search" : "Open search"}
+          onClick={(event) => {
+            event.preventDefault();
+            onOpen();
+            inputRef.current?.focus();
+          }}
+          className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center text-[color:var(--text-muted)] transition-transform duration-300 hover:text-[color:var(--accent-blue)]"
+        >
+          <Search size={20} />
+        </button>
+      </form>
+
+      {showDropdown && (
+        <div
+          className={`absolute right-0 top-11 z-[95] w-80 overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--border-subtle)] bg-[color:var(--bg-panel)] shadow-[var(--shadow-card)] ${
+            compact ? "max-w-[calc(100vw-2rem)]" : ""
+          }`}
+        >
+          {loadingSuggestions ? (
+            <div className="p-4 text-sm text-[color:var(--text-muted)]">Searching...</div>
+          ) : suggestions.length === 0 ? (
+            <div className="p-4 text-sm text-[color:var(--text-muted)]">No quick matches. Press Enter to search all products.</div>
+          ) : (
+            <div className="py-2">
+              {suggestions.map((item) => {
+                const meta = [item.brand_name, item.category_name, item.colour].filter(Boolean).join(" / ");
+                const photo = item.photos?.[0];
+                return (
+                  <Link
+                    key={item.product_id}
+                    href={`/product/${item.product_id}`}
+                    onClick={onSuggestionClick}
+                    className="flex gap-3 px-3 py-2 transition hover:bg-[color:var(--bg-base)]"
+                  >
+                    {photo ? (
+                      <img src={photo} alt={item.name} className="h-14 w-11 rounded-lg object-cover" />
+                    ) : (
+                      <div className="h-14 w-11 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)]" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-[color:var(--text-primary)]">{item.name}</p>
+                      {meta && <p className="truncate text-xs text-[color:var(--text-muted)]">{meta}</p>}
+                      <p className="text-xs font-semibold text-[color:var(--text-primary)]">${Number(item.price).toFixed(2)}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              const syntheticEvent = { preventDefault() {} } as React.FormEvent<HTMLFormElement>;
+              onSubmit(syntheticEvent);
+            }}
+            className="w-full border-t border-[color:var(--border-subtle)] px-3 py-2 text-left text-sm text-[color:var(--accent-blue-soft)] hover:bg-[color:var(--bg-base)]"
+          >
+            Search all for &quot;{value.trim()}&quot;
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [cartOpen, setCartOpen] = useState<boolean>(false);
+  const [searchOpen, setSearchOpen] = useState<boolean>(false);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [mounted, setMounted] = useState<boolean>(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [searchValue, setSearchValue] = useState<string>(() => searchParams.get("query") || "");
   const { items, removeItem, updateQty, clear, total, count } = useCart();
   const { count: wishCount } = useWishlist();
+  const { data: session } = useSession();
 
   // Avoid hydration mismatch for badges that depend on client-only state
   useEffect(() => {
@@ -20,6 +161,78 @@ export default function Navbar() {
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
   }, []);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const id = requestAnimationFrame(() => searchInputRef.current?.focus());
+    return () => cancelAnimationFrame(id);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    const query = searchValue.trim();
+    if (!searchOpen || query.length < 2) {
+      setSuggestions([]);
+      setLoadingSuggestions(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setLoadingSuggestions(true);
+      try {
+        const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("Search failed");
+        const data = await res.json();
+        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error(error);
+          setSuggestions([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoadingSuggestions(false);
+      }
+    }, 180);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [searchOpen, searchValue]);
+
+  const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchValue.trim();
+    if (!query) {
+      setSearchOpen(true);
+      searchInputRef.current?.focus();
+      return;
+    }
+
+    const params = pathname === "/shop"
+      ? new URLSearchParams(Array.from(searchParams.entries()))
+      : new URLSearchParams();
+
+    params.set("query", query);
+    params.set("page", "1");
+
+    const suffix = params.toString();
+    router.push(`/shop${suffix ? `?${suffix}` : ""}`);
+    setSearchOpen(false);
+    setMenuOpen(false);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSuggestions([]);
+  };
+
+  const openSearch = () => {
+    setSearchOpen(true);
+    setCartOpen(false);
+  };
 
   const navLinks = [
     { href: "/women", label: "Women" },
@@ -34,7 +247,7 @@ export default function Navbar() {
     <>
       {/* Navbar */}
       <nav className="fixed w-full top-0 left-0 z-50 border-b border-[color:var(--border-subtle)] bg-[rgba(6,11,20,0.78)] backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
+        <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
           {/* Left - Nav Links */}
           <div className="hidden md:flex space-x-8">
             {navLinks.map((link) => (
@@ -66,32 +279,46 @@ export default function Navbar() {
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
 
-            {/* Search button */}
-            <button
-              aria-label="Search"
-              className="text-[color:var(--text-muted)] hover:text-[color:var(--accent-blue)]"
-            >
-              <Search size={20} />
-            </button>
+            <NavbarSearch
+              open={searchOpen}
+              value={searchValue}
+              inputRef={searchInputRef}
+              suggestions={suggestions}
+              loadingSuggestions={loadingSuggestions}
+              onOpen={openSearch}
+              onClose={closeSearch}
+              onChange={setSearchValue}
+              onSubmit={submitSearch}
+              onSuggestionClick={closeSearch}
+              compact
+            />
           </div>
 
 
           {/* Center - Logo */}
           <Link
             href="/"
-            className="text-2xl font-extrabold tracking-tight text-[color:var(--text-primary)]"
+            className="absolute left-1/2 -translate-x-1/2 text-2xl font-extrabold tracking-tight text-[color:var(--text-primary)]"
           >
             NEURO<span className="text-[color:var(--accent-blue)]">FIT</span>
           </Link>
 
           {/* Right - Icons */}
           <div className="flex items-center space-x-5">
-            <button
-              aria-label="Search"
-              className="hidden md:block text-[color:var(--text-muted)] hover:text-[color:var(--accent-blue)]"
-            >
-              <Search size={20} />
-            </button>
+            <div className="hidden md:block">
+              <NavbarSearch
+                open={searchOpen}
+                value={searchValue}
+                inputRef={searchInputRef}
+                suggestions={suggestions}
+                loadingSuggestions={loadingSuggestions}
+                onOpen={openSearch}
+                onClose={closeSearch}
+                onChange={setSearchValue}
+                onSubmit={submitSearch}
+                onSuggestionClick={closeSearch}
+              />
+            </div>
             <Link
               aria-label="Favourites"
               href="/wishlist"
@@ -111,6 +338,14 @@ export default function Navbar() {
             >
               <User size={20} />
             </Link>
+            {session?.user?.isAdmin && (
+              <Link
+                href="/admin"
+                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/15"
+              >
+                Admin
+              </Link>
+            )}
             <button
               aria-label="Cart"
             className="text-[color:var(--text-muted)] hover:text-[color:var(--accent-blue)] relative"

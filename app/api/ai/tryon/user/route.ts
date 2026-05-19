@@ -57,7 +57,6 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    if (!AI_ENABLED) return NextResponse.json({ error: 'AI disabled' }, { status: 403 });
     const session = await getServerSession(authOptions);
     const email = session?.user?.email;
     if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

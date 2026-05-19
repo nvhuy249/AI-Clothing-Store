@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import type React from 'react';
 import { useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { XMarkIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
@@ -27,6 +28,7 @@ export default function FilterSidebar({ filterOptions, subCategories: initialSub
   const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand') || '');
   const [selectedColour, setSelectedColour] = useState(searchParams.get('colour') || '');
   const [selectedSize, setSelectedSize] = useState(searchParams.get('size') || '');
+  const [query, setQuery] = useState(searchParams.get('query') || '');
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
   const [selectedSort, setSelectedSort] = useState(searchParams.get('sort') || 'newest');
@@ -93,7 +95,7 @@ export default function FilterSidebar({ filterOptions, subCategories: initialSub
       minPrice,
       maxPrice,
       sort: selectedSort,
-      query: searchParams.get('query') || '',
+      query,
     });
   };
 
@@ -118,7 +120,7 @@ export default function FilterSidebar({ filterOptions, subCategories: initialSub
       minPrice,
       maxPrice,
       sort: key === 'sort' ? value : selectedSort,
-      query: searchParams.get('query') || '',
+      query,
     });
   };
 
@@ -132,7 +134,22 @@ export default function FilterSidebar({ filterOptions, subCategories: initialSub
       minPrice,
       maxPrice,
       sort: selectedSort,
-      query: searchParams.get('query') || '',
+      query,
+    });
+  };
+
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    updateURL({
+      category: selectedCategory,
+      subcategory: selectedSubCategory,
+      brand: selectedBrand,
+      colour: selectedColour,
+      size: selectedSize,
+      minPrice,
+      maxPrice,
+      sort: selectedSort,
+      query,
     });
   };
 
@@ -142,14 +159,15 @@ export default function FilterSidebar({ filterOptions, subCategories: initialSub
     setSelectedBrand('');
     setSelectedColour('');
     setSelectedSize('');
+    setQuery('');
     setMinPrice('');
     setMaxPrice('');
     setSelectedSort('newest');
     router.push(pathname);
   };
 
-  const hasActiveFilters = selectedCategory || selectedSubCategory || selectedBrand || 
-    selectedColour || selectedSize || minPrice || maxPrice || selectedSort !== 'newest';
+  const hasActiveFilters = selectedCategory || selectedSubCategory || selectedBrand ||
+    selectedColour || selectedSize || query || minPrice || maxPrice || selectedSort !== 'newest';
 
   return (
     <>
@@ -203,6 +221,50 @@ export default function FilterSidebar({ filterOptions, subCategories: initialSub
               Clear All Filters
             </button>
           )}
+
+          {/* Search */}
+          <form className="mb-6" onSubmit={handleSearchSubmit}>
+            <label className="block text-sm font-medium text-[color:var(--text-muted)] mb-2">
+              Search Products
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Try denim, jens, black..."
+                className="w-full"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-[color:var(--accent-blue)] px-3 py-2 text-sm font-semibold text-[color:var(--bg-base)] hover:brightness-110"
+              >
+                Search
+              </button>
+            </div>
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  updateURL({
+                    category: selectedCategory,
+                    subcategory: selectedSubCategory,
+                    brand: selectedBrand,
+                    colour: selectedColour,
+                    size: selectedSize,
+                    minPrice,
+                    maxPrice,
+                    sort: selectedSort,
+                    query: '',
+                  });
+                }}
+                className="mt-2 text-xs text-[color:var(--text-muted)] hover:text-[color:var(--accent-blue)]"
+              >
+                Clear search
+              </button>
+            )}
+          </form>
 
           {/* Sort */}
           <div className="mb-6">

@@ -1,5 +1,6 @@
 ﻿import postgres from 'postgres';
 import { fetchProductById } from './data';
+import { postgresOptions } from './db';
 import {
   fetchImageAsBase64,
   resizeBase64ToPng,
@@ -12,7 +13,7 @@ import {
 import { hasSupabaseStorage, uploadBase64PngToSupabase, uploadBufferToSupabase } from './storage';
 
 const REPLICATE_TOKEN = process.env.REPLICATE_API_TOKEN;
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, postgresOptions);
 
 type VitonInput = {
   humanImage: string; // base64 or URL

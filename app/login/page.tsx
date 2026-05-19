@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { Eye, EyeOff } from 'lucide-react';
 
 type Mode = 'signin' | 'signup';
 
@@ -12,6 +13,9 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [showSigninPassword, setShowSigninPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   const [signinEmail, setSigninEmail] = useState('');
   const [signinPassword, setSigninPassword] = useState('');
@@ -37,8 +41,10 @@ export default function AuthPage() {
         redirect: false,
       });
       if (res?.error) throw new Error(res.error);
-      setMessage(`Signed in as ${signinEmail}`);
-      router.push('/');
+      const success = `Signed in as ${signinEmail}`;
+      setMessage(success);
+      setToast(success);
+      setTimeout(() => router.push('/'), 650);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sign in failed';
       setError(message);
@@ -66,14 +72,16 @@ export default function AuthPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Sign up failed');
-      setMessage(`Account created for ${data.user?.name || data.user?.email}`);
+      const success = `Account created for ${data.user?.name || data.user?.email}`;
+      setMessage(success);
+      setToast(success);
       // auto sign-in after sign-up for smoother UX
       await signIn('credentials', {
         email: signupEmail,
         password: signupPassword,
         redirect: false,
       });
-      router.push('/profile');
+      setTimeout(() => router.push('/profile'), 750);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sign up failed';
       setError(message);
@@ -84,6 +92,11 @@ export default function AuthPage() {
 
   return (
     <div className="pt-18 min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-center px-4 py-12">
+      {toast && (
+        <div className="fixed right-4 top-20 z-[100] rounded-lg border border-emerald-600/50 bg-emerald-950/90 px-4 py-3 text-sm text-emerald-200 shadow-2xl">
+          {toast}
+        </div>
+      )}
       <div className="w-full max-w-5xl rounded-2xl bg-slate-950/70 border border-slate-800 shadow-2xl backdrop-blur-sm overflow-hidden relative">
         {/* Sliding door */}
         <div
@@ -124,14 +137,24 @@ export default function AuthPage() {
               </div>
               <div>
                 <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Password</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 focus:border-blue-500 focus:outline-none"
-                  placeholder="•••••••••"
-                  value={signinPassword}
-                  onChange={(e) => setSigninPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    type={showSigninPassword ? 'text' : 'password'}
+                    required
+                    className="w-full px-4 py-3 pr-12 rounded-lg bg-slate-900 border border-slate-700 focus:border-blue-500 focus:outline-none"
+                    placeholder="Enter your password"
+                    value={signinPassword}
+                    onChange={(e) => setSigninPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSigninPassword((value) => !value)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)] hover:text-[color:var(--text-primary)]"
+                    aria-label={showSigninPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showSigninPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm text-[color:var(--text-muted)]">
                 <label className="inline-flex items-center gap-2">
@@ -220,14 +243,24 @@ export default function AuthPage() {
 
               <div>
                 <label className="block text-sm mb-1 text-[color:var(--text-primary)]">Password</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 focus:border-emerald-500 focus:outline-none"
-                  placeholder="Create a password"
-                  value={signupPassword}
-                  onChange={(e) => setSignupPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    type={showSignupPassword ? 'text' : 'password'}
+                    required
+                    className="w-full px-4 py-3 pr-12 rounded-lg bg-slate-900 border border-slate-700 focus:border-emerald-500 focus:outline-none"
+                    placeholder="Create a password"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignupPassword((value) => !value)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)] hover:text-[color:var(--text-primary)]"
+                    aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showSignupPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -295,4 +328,3 @@ export default function AuthPage() {
     </div>
   );
 }
-

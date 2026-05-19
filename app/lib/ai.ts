@@ -2,8 +2,9 @@
 import postgres from 'postgres';
 import sharp from 'sharp';
 import { hasSupabaseStorage, uploadBase64PngToSupabase } from './storage';
+import { postgresOptions } from './db';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, postgresOptions);
 
 const ENABLED = process.env.AI_IMAGES_ENABLED === 'true';
 const DAILY_CAP = Number(process.env.AI_IMAGES_DAILY_CAP || '20');
@@ -11,6 +12,23 @@ const ADMIN_TOKEN = process.env.AI_IMAGES_ADMIN_TOKEN;
 const STABILITY_API_KEY = process.env.STABILITY_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const DEFAULT_IMG_SIZE = 1024;
+
+function imageResultToUrl(data: { data?: Array<{ url?: string; b64_json?: string }> }) {
+  const url = data?.data?.[0]?.url;
+  const b64 = data?.data?.[0]?.b64_json;
+
+  if (url) return url;
+  if (b64) return `data:image/png;base64,${b64}`;
+
+  throw new Error(`No image URL returned from OpenAI. Raw response: ${JSON.stringify(data)}`);
+}
+
+async function persistGeneratedPng(imageUrl: string, path: string) {
+  if (!imageUrl.startsWith('data:image')) return imageUrl;
+  const base64 = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+  if (!hasSupabaseStorage()) return imageUrl;
+  return uploadBase64PngToSupabase(base64, path, { public: true });
+}
 
 export function assertAiEnabled(adminToken?: string) {
   if (!ENABLED) {
@@ -45,14 +63,23 @@ export async function generateAiOutfitImage(productId: string): Promise<string> 
   const desc = (product.description || '').trim();
   const fit = (product.fit || '').trim();
   const material = (product.material || '').trim();
+  const categoryText = `${product.category_name || ''} ${product.subcategory_name || ''}`.toLowerCase();
+  const gender = categoryText.includes('women')
+    ? 'female'
+    : categoryText.includes('men')
+      ? 'male'
+      : 'gender-neutral';
   const prompt = [
-    `E-commerce studio photo, must exactly match the real garment silhouette and details.`,
-    `Full-body model, neutral pose, facing camera, balanced lighting, clean light-gray background.`,
+    `Premium e-commerce studio image of one adult ${gender} fashion model wearing the product.`,
+    `The model must stand straight, front-facing, full-body, neutral posture, arms relaxed, centered in frame.`,
+    `Use a pure white or very light blank studio background, no props, no scenery, no mirror selfie, no streetwear setting.`,
+    `The generated image must look photorealistic, not illustrated, not 3D, not a mannequin, not a child, not a drawing.`,
+    `Must exactly match the product silhouette, category, color, fabric, and fit.`,
     `Product facts (follow precisely, no creative changes):`,
     `- Name: "${product.name}"`,
     `- Brand: ${product.brand_name ?? 'Unbranded'}`,
     `- Category: ${product.category_name ?? 'Apparel'}${product.subcategory_name ? ` / ${product.subcategory_name}` : ''}`,
-    `- Colour: ${product.colour ?? 'unspecified'} â€” keep this exact hue.`,
+    `- Colour: ${product.colour ?? 'unspecified'} - keep this exact hue.`,
     `- Size shown: ${product.size ?? 'standard sample size'}.`,
     fit ? `- Fit / cut: ${fit} (keep leg width/shape consistent; do not slim or taper if marked baggy/loose).` : '',
     material ? `- Material: ${material}.` : '',
@@ -81,19 +108,129 @@ export async function generateAiOutfitImage(productId: string): Promise<string> 
   }
 
   const data = await response.json();
-  const url = data?.data?.[0]?.url;
-  const b64 = data?.data?.[0]?.b64_json;
+  return imageResultToUrl(data);
+}
 
-  if (url) return url;
-  if (b64) return `data:image/png;base64,${b64}`;
+export async function generateProductPackshotImage(productId: string): Promise<string> {
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is required to generate product images.');
+  }
 
-  throw new Error(`No image URL returned from OpenAI. Raw response: ${JSON.stringify(data)}`);
+  const product = await fetchProductById(productId);
+  if (!product) throw new Error('Product not found');
+
+  const desc = (product.description || '').trim();
+  const fit = (product.fit || '').trim();
+  const material = (product.material || '').trim();
+  const prompt = [
+    `Premium e-commerce product packshot of the clothing item only.`,
+    `Pure white seamless background, centered product, front-facing, evenly lit studio catalog photo.`,
+    `No person, no hands, no body parts, no mannequin, no hanger, no model, no props, no room, no lifestyle setting.`,
+    `Photorealistic only. Not illustrated, not a drawing, not a 3D render.`,
+    `Product facts:`,
+    `- Name: "${product.name}"`,
+    `- Brand: ${product.brand_name ?? 'Unbranded'}`,
+    `- Category: ${product.category_name ?? 'Apparel'}${product.subcategory_name ? ` / ${product.subcategory_name}` : ''}`,
+    `- Colour: ${product.colour ?? 'unspecified'} - keep this exact hue.`,
+    fit ? `- Fit / cut: ${fit}.` : '',
+    material ? `- Material: ${material}.` : '',
+    desc ? `- Notes: ${desc}` : '',
+    `Keep the shape realistic and consistent with the product category.`,
+  ].filter(Boolean).join(' ');
+
+  const response = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-image-1',
+      prompt,
+      size: '1024x1024',
+      quality: 'high',
+      n: 1,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`OpenAI product image generation failed: ${err}`);
+  }
+
+  const imageUrl = imageResultToUrl(await response.json());
+  return persistGeneratedPng(imageUrl, `products/packshots/${productId}-${Date.now()}.png`);
+}
+
+export async function replaceProductPrimaryPhoto(productId: string, imageUrl: string) {
+  const rows = await sql<{ photos: string[] | null }[]>`
+    SELECT photos
+    FROM products
+    WHERE product_id = ${productId}
+    LIMIT 1
+  `;
+
+  const currentPhotos = rows[0]?.photos ?? [];
+  const nextPhotos = [imageUrl, ...currentPhotos.slice(1)];
+  await sql`
+    UPDATE products
+    SET photos = ${nextPhotos}
+    WHERE product_id = ${productId}
+  `;
+}
+
+export async function getProductsMissingGeneratedPackshots(limit = 10): Promise<string[]> {
+  await sql`
+    CREATE TABLE IF NOT EXISTS product_image_generations (
+      product_id UUID PRIMARY KEY REFERENCES products(product_id) ON DELETE CASCADE,
+      generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  await sql`
+    INSERT INTO product_image_generations (product_id, generated_at)
+    SELECT product_id, CURRENT_TIMESTAMP
+    FROM products
+    WHERE COALESCE(photos[1], '') <> ''
+    AND COALESCE(photos[1], '') NOT LIKE '%images.unsplash.com%'
+    ON CONFLICT (product_id) DO NOTHING
+  `;
+
+  const rows = await sql<{ product_id: string }[]>`
+    SELECT p.product_id
+    FROM products p
+    LEFT JOIN product_image_generations pig ON pig.product_id = p.product_id
+    WHERE pig.product_id IS NULL
+    AND COALESCE(p.photos[1], '') NOT LIKE 'data:image%'
+    AND COALESCE(p.photos[1], '') NOT LIKE '%/products/packshots/%'
+    AND COALESCE(p.photos[1], '') NOT LIKE '%products%2Fpackshots%'
+    ORDER BY p.created_at DESC
+    LIMIT ${limit}
+  `;
+
+  return rows.map((row) => row.product_id);
+}
+
+export async function markGeneratedPackshot(productId: string) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS product_image_generations (
+      product_id UUID PRIMARY KEY REFERENCES products(product_id) ON DELETE CASCADE,
+      generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  await sql`
+    INSERT INTO product_image_generations (product_id, generated_at)
+    VALUES (${productId}, CURRENT_TIMESTAMP)
+    ON CONFLICT (product_id)
+    DO UPDATE SET generated_at = EXCLUDED.generated_at
+  `;
 }
 
 export async function upsertAiPhoto(productId: string, imageUrl: string) {
-  // Replace existing AI photos for this product to keep the latest, avoiding gallery clutter
+  // Replace only catalog AI photos. User try-on history has customer_id set and must be preserved.
   if (productId) {
-    await sql`DELETE FROM ai_generated_photos WHERE product_id = ${productId}`;
+    await sql`DELETE FROM ai_generated_photos WHERE product_id = ${productId} AND customer_id IS NULL`;
   }
   await sql`
     INSERT INTO ai_generated_photos (customer_id, product_id, image_url, ai_model_version)
@@ -106,7 +243,7 @@ export async function getProductsMissingAi(limit = 10): Promise<string[]> {
   const rows = await sql<{ product_id: string }[]>`
     SELECT p.product_id
     FROM products p
-    LEFT JOIN ai_generated_photos a ON a.product_id = p.product_id
+    LEFT JOIN ai_generated_photos a ON a.product_id = p.product_id AND a.customer_id IS NULL
     WHERE a.product_id IS NULL
     ORDER BY p.created_at DESC
     LIMIT ${limit}
@@ -345,7 +482,10 @@ export async function generateStabilityImage(productId: string): Promise<string>
       ? 'male'
       : 'unisex';
   const prompt = [
-    `Full-body photo of a ${gender} fashion model wearing the garment. Include head, torso, arms, legs; neutral standing pose; clean light-gray background; balanced studio lighting.`,
+    `Premium e-commerce studio photo of one adult ${gender} fashion model wearing the garment.`,
+    `Model must be straight, front-facing, full-body, neutral standing posture, centered in frame.`,
+    `Use a pure white or very light blank studio background with balanced studio lighting.`,
+    `Photorealistic only: no illustration, no 3D render, no mannequin, no child, no drawing.`,
     `Match the real garment exactly (silhouette, colour, fabric).`,
     `Facts:`,
     `- Name: "${product.name}"`,
@@ -361,9 +501,9 @@ export async function generateStabilityImage(productId: string): Promise<string>
   ].filter(Boolean).join(' ');
 
   const negativePrompt = [
-    'deformed, low-res, extra limbs, text, watermark',
+    'deformed, low-res, extra limbs, text, watermark, child, teenager, illustration, drawing, cartoon, 3d render',
     'flat lay, isolated product, product-only, no-human, ghost mannequin, mannequin, dress form, floating garment',
-    'color shifts, pattern changes, logo changes'
+    'street background, outdoor background, bedroom, mirror selfie, color shifts, pattern changes, logo changes'
   ].join(', ');
 
   const initImageUrl = (product.photos && product.photos[0]) || '';
@@ -436,7 +576,10 @@ export async function generateStabilityImageForBase(
     }
   }
   const prompt = [
-    `Full-body photo of a ${gender} fashion model wearing the garment. Include head, torso, arms, legs; neutral standing pose; clean light-gray background; balanced studio lighting.`,
+    `Premium e-commerce studio photo of one adult ${gender} fashion model wearing the garment.`,
+    `Model must be straight, front-facing, full-body, neutral standing posture, centered in frame.`,
+    `Use a pure white or very light blank studio background with balanced studio lighting.`,
+    `Photorealistic only: no illustration, no 3D render, no mannequin, no child, no drawing.`,
     `Match the real garment exactly (silhouette, colour, fabric). Preserve garment width and shape; do not change fit.`,
     `Facts:`,
     `- Name: "${product.name}"`,
@@ -454,9 +597,9 @@ export async function generateStabilityImageForBase(
   ].filter(Boolean).join(' ');
 
   const negativePrompt = [
-    'deformed, low-res, extra limbs, text, watermark',
+    'deformed, low-res, extra limbs, text, watermark, child, teenager, illustration, drawing, cartoon, 3d render',
     'flat lay, isolated product, product-only, no-human, ghost mannequin, mannequin, dress form, floating garment',
-    'color shifts, pattern changes, logo changes, beige, tan',
+    'street background, outdoor background, bedroom, mirror selfie, color shifts, pattern changes, logo changes, beige, tan',
     'skinny fit, slim fit, tapered leg, tight pants, leggings'
   ].join(', ');
 
@@ -500,8 +643,3 @@ export async function generateStabilityImageForBase(
   if (!b64) throw new Error(`No image returned from Stability. Raw: ${JSON.stringify(data)}`);
   return `data:image/png;base64,${b64}`;
 }
-
-
-
-
-

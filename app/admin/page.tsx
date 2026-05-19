@@ -1,7 +1,12 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import AdminRoleManager from "../components/AdminRoleManager";
+import ProductCsvImport from "../components/ProductCsvImport";
 
 type Product = {
   product_id: string;
@@ -11,15 +16,40 @@ type Product = {
   photos: string[] | null;
 };
 
+type NewProduct = {
+  name: string;
+  description: string;
+  price: string;
+  stock: string;
+  colour: string;
+  size: string;
+  fit: string;
+  material: string;
+};
+
+const emptyProduct: NewProduct = {
+  name: "",
+  description: "",
+  price: "",
+  stock: "0",
+  colour: "",
+  size: "",
+  fit: "",
+  material: "",
+};
+
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [newProduct, setNewProduct] = useState<NewProduct>(emptyProduct);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const router = useRouter();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/products", {
@@ -32,16 +62,16 @@ export default function AdminPage() {
       const data = await res.json();
       setProducts(data.products || []);
       setError(null);
-    } catch (e) {
+    } catch {
       setError("Failed to load products");
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const updateProduct = async (productId: string, price: number, stock: number) => {
     setSavingId(productId);
@@ -52,6 +82,56 @@ export default function AdminPage() {
     });
     setSavingId(null);
     load();
+  };
+
+  const createProduct = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreating(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrf() },
+        body: JSON.stringify({
+          name: newProduct.name,
+          description: newProduct.description || null,
+          price: Number(newProduct.price),
+          stock: Number(newProduct.stock || 0),
+          colour: newProduct.colour || null,
+          size: newProduct.size || null,
+          fit: newProduct.fit || null,
+          material: newProduct.material || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to create product");
+      setNewProduct(emptyProduct);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create product");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const deleteProduct = async (productId: string, name: string) => {
+    if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
+    setDeletingId(productId);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/products", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrf() },
+        body: JSON.stringify({ productId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to delete product");
+      setProducts((current) => current.filter((product) => product.product_id !== productId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete product");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const uploadPhoto = async (productId: string, file: File) => {
@@ -72,10 +152,97 @@ export default function AdminPage() {
             <p className="text-sm text-[color:var(--text-muted)]">Admin</p>
             <h1 className="text-3xl font-semibold">Inventory</h1>
           </div>
+          <Link
+            href="/admin/reviews"
+            className="rounded-lg border border-[color:var(--border-subtle)] px-4 py-2 text-sm text-[color:var(--text-primary)] hover:border-[color:var(--border-soft)]"
+          >
+            Moderate reviews
+          </Link>
         </div>
 
         {loading && <p className="text-[color:var(--text-muted)]">Loading products...</p>}
         {error && <p className="text-rose-400">{error}</p>}
+
+        <div className="mb-6">
+          <AdminRoleManager />
+        </div>
+
+        <ProductCsvImport onComplete={load} />
+
+        <form
+          onSubmit={createProduct}
+          className="mb-6 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--bg-panel)] p-4"
+        >
+          <div className="mb-4">
+            <p className="text-sm text-[color:var(--text-muted)]">Product CRUD</p>
+            <h2 className="text-xl font-semibold">Create product</h2>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <input
+              required
+              value={newProduct.name}
+              onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Name"
+              className="rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)] px-3 py-2"
+            />
+            <input
+              required
+              type="number"
+              step="0.01"
+              min="0"
+              value={newProduct.price}
+              onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))}
+              placeholder="Price"
+              className="rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)] px-3 py-2"
+            />
+            <input
+              type="number"
+              min="0"
+              value={newProduct.stock}
+              onChange={(e) => setNewProduct((p) => ({ ...p, stock: e.target.value }))}
+              placeholder="Stock"
+              className="rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)] px-3 py-2"
+            />
+            <input
+              value={newProduct.colour}
+              onChange={(e) => setNewProduct((p) => ({ ...p, colour: e.target.value }))}
+              placeholder="Colour"
+              className="rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)] px-3 py-2"
+            />
+            <input
+              value={newProduct.size}
+              onChange={(e) => setNewProduct((p) => ({ ...p, size: e.target.value }))}
+              placeholder="Size"
+              className="rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)] px-3 py-2"
+            />
+            <input
+              value={newProduct.fit}
+              onChange={(e) => setNewProduct((p) => ({ ...p, fit: e.target.value }))}
+              placeholder="Fit"
+              className="rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)] px-3 py-2"
+            />
+            <input
+              value={newProduct.material}
+              onChange={(e) => setNewProduct((p) => ({ ...p, material: e.target.value }))}
+              placeholder="Material"
+              className="rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)] px-3 py-2"
+            />
+            <button
+              type="submit"
+              disabled={creating}
+              className="rounded bg-[color:var(--accent-blue)] px-4 py-2 font-semibold text-[color:var(--bg-base)] hover:brightness-110 disabled:opacity-60"
+            >
+              {creating ? "Creating..." : "Create"}
+            </button>
+          </div>
+          <textarea
+            value={newProduct.description}
+            onChange={(e) => setNewProduct((p) => ({ ...p, description: e.target.value }))}
+            placeholder="Description"
+            rows={2}
+            className="mt-3 w-full rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-base)] px-3 py-2"
+          />
+        </form>
 
         <div className="space-y-4">
           {products.map((p) => (
@@ -110,6 +277,14 @@ export default function AdminPage() {
                   <span className="text-xs text-[color:var(--text-muted)]">
                     {savingId === p.product_id ? "Saving..." : ""}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => deleteProduct(p.product_id, p.name)}
+                    disabled={deletingId === p.product_id}
+                    className="rounded-lg border border-rose-500/50 px-3 py-2 text-sm text-rose-300 hover:bg-rose-950/30 disabled:opacity-60"
+                  >
+                    {deletingId === p.product_id ? "Deleting..." : "Delete"}
+                  </button>
                 </div>
               </div>
 

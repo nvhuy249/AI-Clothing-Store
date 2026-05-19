@@ -25,7 +25,7 @@ export const glow = {
   primary: "0 12px 32px rgba(59, 130, 246, 0.45)",
 };
 
-export const themeVars: CSSProperties = {
+export const themeVars: CSSProperties & Record<`--${string}`, string> = {
   "--bg-base": colors.bgBase,
   "--bg-panel": colors.bgPanel,
   "--border-subtle": colors.borderSubtle,

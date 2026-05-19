@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function Error({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[color:var(--bg-base)] text-[color:var(--text-primary)] px-4">
@@ -15,15 +17,14 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
         >
           Retry
         </button>
-        <a
+        <Link
           href="/"
           className="px-5 py-3 rounded-lg border border-[color:var(--border-subtle)] text-[color:var(--text-primary)]"
           aria-label="Go home"
         >
           Go home
-        </a>
+        </Link>
       </div>
     </div>
   );
 }
-

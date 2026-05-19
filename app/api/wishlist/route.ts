@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../lib/auth';
 import { getDb } from '../../lib/db';
 import { z } from 'zod';
+import { ensureUsersTableName } from '../../lib/users';
 
 const productSchema = z.object({
   productId: z.string().uuid(),
@@ -12,9 +13,10 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
   if (!email) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  await ensureUsersTableName();
 
   const userRows = await getDb()<{ customer_id: string }[]>`
-    SELECT customer_id FROM customers WHERE email = ${email} LIMIT 1
+    SELECT customer_id FROM users WHERE email = ${email} LIMIT 1
   `;
   if (userRows.length === 0) return NextResponse.json({ items: [] });
 
@@ -35,6 +37,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
   if (!email) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  await ensureUsersTableName();
 
   const contentType = req.headers.get('content-type') || '';
   let productIdRaw: unknown;
@@ -49,7 +52,7 @@ export async function POST(req: Request) {
   const productId = parsed.data.productId;
 
   const userRows = await getDb()<{ customer_id: string }[]>`
-    SELECT customer_id FROM customers WHERE email = ${email} LIMIT 1
+    SELECT customer_id FROM users WHERE email = ${email} LIMIT 1
   `;
   if (userRows.length === 0) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
@@ -68,6 +71,7 @@ export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
   if (!email) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  await ensureUsersTableName();
 
   const contentType = req.headers.get('content-type') || '';
   let productIdRaw: unknown;
@@ -82,7 +86,7 @@ export async function DELETE(req: Request) {
   const productId = parsed.data.productId;
 
   const userRows = await getDb()<{ customer_id: string }[]>`
-    SELECT customer_id FROM customers WHERE email = ${email} LIMIT 1
+    SELECT customer_id FROM users WHERE email = ${email} LIMIT 1
   `;
   if (userRows.length === 0) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 

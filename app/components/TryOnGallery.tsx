@@ -11,9 +11,10 @@ type TryOnItem = {
 
 type Props = {
   items: TryOnItem[];
+  limit?: number;
 };
 
-export default function TryOnGallery({ items }: Props) {
+export default function TryOnGallery({ items, limit = 12 }: Props) {
   const [data, setData] = useState(items);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,10 @@ export default function TryOnGallery({ items }: Props) {
     setBusyId(photoId);
     setError(null);
     try {
-      const res = await fetch(`/api/ai/tryon/user?photoId=${photoId}`, { method: "DELETE" });
+      const res = await fetch(`/api/ai/tryon/user?photoId=${photoId}`, {
+        method: "DELETE",
+        headers: { "x-csrf-token": getCsrf() },
+      });
       if (!res.ok) throw new Error(await res.text());
       setData((prev) => prev.filter((x) => x.photo_id !== photoId));
     } catch (e: unknown) {
@@ -36,8 +40,11 @@ export default function TryOnGallery({ items }: Props) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold">My Try-On Gallery</h2>
-        <span className="text-sm text-[color:var(--text-muted)]">{data.length} generated</span>
+        <div>
+          <h2 className="text-lg font-semibold">My Try-On Gallery</h2>
+          <p className="text-xs text-[color:var(--text-muted)]">Last {limit} renders</p>
+        </div>
+        <span className="text-sm text-[color:var(--text-muted)]">{data.length} shown</span>
       </div>
       {error && <p className="text-xs text-rose-400 mb-2">{error}</p>}
       {data.length === 0 ? (
@@ -66,6 +73,12 @@ export default function TryOnGallery({ items }: Props) {
       )}
     </div>
   );
+}
+
+function getCsrf() {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(/csrfToken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
 }
 
 

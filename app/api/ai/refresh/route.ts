@@ -3,10 +3,12 @@ import { generateAiOutfitImage, upsertAiPhoto, getProductsMissingAi, assertAiEna
 
 export async function POST(req: Request) {
   try {
-    const { adminToken, force } = (await req.json().catch(() => ({}))) || {};
+    const { adminToken, force, maxProducts } = (await req.json().catch(() => ({}))) || {};
     assertAiEnabled(adminToken);
 
-    const productIds = force ? await getProductsAny(20) : await getProductsMissingAi(20);
+    const limitNum = Number(maxProducts);
+    const limit = Number.isFinite(limitNum) ? Math.max(1, Math.min(limitNum, 20)) : 3;
+    const productIds = force ? await getProductsAny(limit) : await getProductsMissingAi(limit);
     const results: Array<{ productId: string; url?: string; error?: string }> = [];
 
     for (const productId of productIds) {

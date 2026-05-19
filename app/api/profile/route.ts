@@ -2,15 +2,17 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../lib/auth';
 import { getDb } from '../../lib/db';
+import { ensureUsersTableName } from '../../lib/users';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
   if (!email) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  await ensureUsersTableName();
 
   const rows = await getDb()`
     SELECT customer_id, name, email, phone, address, profile_photo_url, created_at
-    FROM customers
+    FROM users
     WHERE email = ${email}
     LIMIT 1
   `;
@@ -26,12 +28,13 @@ export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
   if (!email) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  await ensureUsersTableName();
 
   const body = await req.json();
   const { name, phone, address, profile_photo_url } = body || {};
 
   const updated = await getDb()`
-    UPDATE customers
+    UPDATE users
     SET
       name = COALESCE(${name}, name),
       phone = COALESCE(${phone}, phone),

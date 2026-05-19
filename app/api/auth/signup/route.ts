@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { getDb } from '../../../lib/db';
+import { grantRoleByCustomerId } from '../../../lib/roles';
+import { ensureUsersTableName } from '../../../lib/users';
 
 const schema = z.object({
   name: z.string().min(2).max(120),
@@ -18,9 +20,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid payload', details: parse.error.flatten() }, { status: 400 });
     }
     const { name, email, password, phone, address } = parse.data;
+    await ensureUsersTableName();
 
     const existing = await getDb()<{ email: string }[]>`
-      SELECT email FROM customers WHERE email = ${email} LIMIT 1
+      SELECT email FROM users WHERE email = ${email} LIMIT 1
     `;
 
     if (existing.length > 0) {
@@ -30,12 +33,13 @@ export async function POST(req: Request) {
     const hashed = await bcrypt.hash(password, 10);
 
     const inserted = await getDb()<{ customer_id: string; name: string; email: string }[]>`
-      INSERT INTO customers (name, email, password, phone, address)
+      INSERT INTO users (name, email, password, phone, address)
       VALUES (${name}, ${email}, ${hashed}, ${phone ?? null}, ${address ?? null})
       RETURNING customer_id, name, email
     `;
 
     const user = inserted[0];
+    await grantRoleByCustomerId(user.customer_id, 'customer');
     return NextResponse.json({ user });
   } catch (error) {
     console.error('Signup error', error);

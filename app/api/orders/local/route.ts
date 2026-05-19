@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../lib/auth';
 import { fetchCustomerByEmail } from '../../../lib/data';
 import { getDb } from '../../../lib/db';
+import { sendOrderConfirmationEmail } from '../../../lib/email';
 import { z } from 'zod';
 
 const orderSchema = z.object({
@@ -33,12 +34,14 @@ export async function POST(req: Request) {
     }
     const { items, shippingAddress, address, phone, note } = parse.data;
     const shipAddress = shippingAddress || address || null;
+    const orderPhone = phone || null;
+    const orderNote = note || null;
 
     const productIds = items.map((i) => i.productId);
 
-    return await getDb().begin(async (trx) => {
-      const dbProducts = await trx<{ product_id: string; price: number; stock_quantity: number | null }[]>`
-        SELECT product_id, price, COALESCE(stock_quantity, 0) AS stock_quantity
+    const order = await getDb().begin(async (trx) => {
+      const dbProducts = await trx<{ product_id: string; name: string; price: number; stock_quantity: number | null }[]>`
+        SELECT product_id, name, price, COALESCE(stock_quantity, 0) AS stock_quantity
         FROM products
         WHERE product_id = ANY(${productIds})
         FOR UPDATE
@@ -49,6 +52,7 @@ export async function POST(req: Request) {
 
       const priceMap = new Map(dbProducts.map((p) => [p.product_id, Number(p.price)]));
       const stockMap = new Map(dbProducts.map((p) => [p.product_id, Number(p.stock_quantity || 0)]));
+      const productNameMap = new Map(dbProducts.map((p) => [p.product_id, p.name]));
 
       for (const item of items) {
         const stock = stockMap.get(item.productId) ?? 0;
@@ -65,9 +69,9 @@ export async function POST(req: Request) {
         return sum + price * i.qty;
       }, 0);
 
-      const orderRow = await trx<{ order_id: string }[]>`
+      const orderRow = await trx<Array<{ order_id: string }>>`
         INSERT INTO orders (customer_id, status, total_amount, address, phone, note)
-        VALUES (${customer.customer_id}, 'pending', ${total}, ${shipAddress}, ${phone}, ${note})
+        VALUES (${customer.customer_id}, 'pending', ${total}, ${shipAddress}, ${orderPhone}, ${orderNote})
         RETURNING order_id
       `;
       const orderId = orderRow[0].order_id;
@@ -85,8 +89,35 @@ export async function POST(req: Request) {
         `;
       }
 
-      return NextResponse.json({ ok: true, orderId });
+      return {
+        orderId,
+        total,
+        items: items.map((item) => ({
+          name: productNameMap.get(item.productId) || item.productId,
+          quantity: item.qty,
+          unitPrice: priceMap.get(item.productId) || 0,
+        })),
+      };
     });
+
+    if (order instanceof NextResponse) {
+      return order;
+    }
+
+    try {
+      await sendOrderConfirmationEmail({
+        to: customer.email,
+        customerName: customer.name,
+        orderId: order.orderId,
+        total: order.total,
+        items: order.items,
+        shippingAddress: shipAddress,
+      });
+    } catch (emailError) {
+      console.error("Order email failed", emailError);
+    }
+
+    return NextResponse.json({ ok: true, orderId: order.orderId });
   } catch (err: unknown) {
     console.error('Local checkout error', err);
     const message = err instanceof Error ? err.message : 'Checkout failed';

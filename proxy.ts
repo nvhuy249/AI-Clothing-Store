@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 // Simple in-memory rate limit store (per instance)
 const buckets = new Map<string, { count: number; reset: number }>();
@@ -7,11 +8,11 @@ const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_REQUESTS = 40; // per window
 
 // Paths to protect (state-changing + expensive)
-const RATE_PATHS = [/^\/api\/auth/, /^\/api\/ai/, /^\/api\/uploads/, /^\/api\/orders/, /^\/api\/wishlist/, /^\/api\/admin/];
+const RATE_PATHS = [/^\/api\/auth/, /^\/api\/ai/, /^\/api\/uploads/, /^\/api\/orders/, /^\/api\/wishlist/, /^\/api\/reviews/, /^\/api\/admin/];
 const CSRF_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
 
 function key(req: NextRequest) {
-  const ip = req.ip || req.headers.get("x-forwarded-for") || "unknown";
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
   const pathGroup = RATE_PATHS.find((re) => re.test(req.nextUrl.pathname))?.source || "other";
   return `${ip}:${pathGroup}`;
 }
@@ -29,8 +30,22 @@ function isRateLimited(req: NextRequest): boolean {
   return false;
 }
 
-export function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const res = NextResponse.next();
+  const isAdminPage = req.nextUrl.pathname === "/admin" || req.nextUrl.pathname.startsWith("/admin/");
+
+  if (isAdminPage) {
+    const token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    });
+
+    if (!token?.isAdmin) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
 
   // Seed CSRF token cookie if missing (non-HttpOnly so client can read and echo)
   const existingCsrf = req.cookies.get("csrfToken")?.value;
@@ -38,7 +53,7 @@ export function middleware(req: NextRequest) {
     const token = crypto.randomUUID();
     res.cookies.set("csrfToken", token, {
       sameSite: "lax",
-      secure: true,
+      secure: req.nextUrl.protocol === "https:",
       path: "/",
     });
   }
@@ -72,5 +87,7 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/api/:path*",
+    "/admin/:path*",
+    "/admin",
   ],
 };

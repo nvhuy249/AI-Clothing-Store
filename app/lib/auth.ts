@@ -5,9 +5,12 @@ import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcrypt";
 import postgres from "postgres";
 import crypto from "crypto";
+import { getRolesForEmail, grantRoleByCustomerId } from "./roles";
+import { ensureUsersTableName } from "./users";
+import { postgresOptions } from "./db";
 
 // Reuse a single Postgres client; Next.js app router runs in a serverless style.
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
+const sql = postgres(process.env.POSTGRES_URL!, postgresOptions);
 
 const secret =
   process.env.AUTH_SECRET ||
@@ -23,6 +26,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        await ensureUsersTableName();
         const users = await sql<{
           customer_id: string;
           name: string;
@@ -30,7 +34,7 @@ export const authOptions: NextAuthOptions = {
           password: string;
         }[]>`
           SELECT customer_id, name, email, password
-          FROM customers
+          FROM users
           WHERE email = ${credentials.email}
           LIMIT 1
         `;
@@ -64,33 +68,46 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      // For OAuth providers, ensure the user exists in our customers table.
+      // For OAuth providers, ensure the user exists in our users table.
       if (!account || account.provider === "credentials") return true;
       const email = user.email;
       if (!email) return false;
+      await ensureUsersTableName();
       const existing = await sql<{ customer_id: string }[]>`
-        SELECT customer_id FROM customers WHERE email = ${email} LIMIT 1
+        SELECT customer_id FROM users WHERE email = ${email} LIMIT 1
       `;
-      if (existing.length > 0) return true;
+      if (existing.length > 0) {
+        await grantRoleByCustomerId(existing[0].customer_id, "customer");
+        return true;
+      }
       const name = user.name || profile?.name || email.split("@")[0];
       const placeholderPassword = await bcrypt.hash(
         crypto.randomBytes(16).toString("hex"),
         10
       );
-      await sql`
-        INSERT INTO customers (name, email, password)
+      const inserted = await sql<{ customer_id: string }[]>`
+        INSERT INTO users (name, email, password)
         VALUES (${name}, ${email}, ${placeholderPassword})
-        ON CONFLICT (email) DO NOTHING
+        ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+        RETURNING customer_id
       `;
+      if (inserted[0]?.customer_id) {
+        await grantRoleByCustomerId(inserted[0].customer_id, "customer");
+      }
       return true;
     },
     async jwt({ token, user }) {
       if (user?.id) token.id = user.id;
+      const roles = await getRolesForEmail(token.email);
+      token.roles = roles;
+      token.isAdmin = roles.includes("admin");
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
+        session.user.roles = Array.isArray(token.roles) ? token.roles : [];
+        session.user.isAdmin = Boolean(token.isAdmin);
       }
       return session;
     },

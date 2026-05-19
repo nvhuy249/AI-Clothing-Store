@@ -45,6 +45,8 @@ export interface ProductWithRelations {
   colour: string;
   size: string;
   created_at: string;
+  photos?: string[] | null;
+  ai_photo?: string | null;
   // Add joined names:
   brand_name?: string;
   category_name?: string;
